@@ -1,93 +1,93 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.25)
 
-project(Sockets LANGUAGES CXX DESCRIPTION "")
+project(sockets LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(BUILD_SHARED "" ON)
-option(BUILD_STATIC "" OFF)
-option(GENERATE_DEB_PACKAGE "" OFF)
-option(ENABLE_ASAN "Enables asan build. Works only with clang and in debug build" OFF)
+option(BUILD_STATIC "Build static library" ON)
+option(BUILD_DOCS "Build docs" OFF)
+option(ENABLE_ASAN "Enables asan build" OFF)
 
-if (${BUILD_STATIC})
-    message(STATUS "Static library is enabled - switching off shared one")
-    set(BUILD_SHARED OFF)
-endif (${BUILD_STATIC})
-
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    # using Clang
-    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(CMAKE_CXX_FLAGS "-g -g3 -glldb -ggdb -ggdb3 -O0 -Wall -Wextra -Wpedantic -Wfloat-equal -Werror")
-        if (${ENABLE_ASAN})
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -shared-libasan")
+if (${PROJECT_IS_TOP_LEVEL})
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        # using Clang
+        if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+            set(CMAKE_CXX_FLAGS "-g -g3 -glldb -ggdb -ggdb3 -O0 -Wall -Wextra -Wpedantic -Wfloat-equal -Werror")
+            if (${ENABLE_ASAN})
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -shared-libasan")
+            endif ()
         endif ()
-    endif (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    if (CMAKE_BUILD_TYPE STREQUAL "Release")
-        set(CMAKE_CXX_FLAGS "-g0 -ggdb0 -glldb0 -O3")
-    endif (CMAKE_BUILD_TYPE STREQUAL "Release")
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    # using GCC
-    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(CMAKE_CXX_FLAGS "-g -ggdb3 -O0 -Wall -Wextra -Wpedantic -Wfloat-equal -Werror")
-    endif (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    if (CMAKE_BUILD_TYPE STREQUAL "Release")
-        set(CMAKE_CXX_FLAGS "-g0 -ggdb0 -O3")
-    endif (CMAKE_BUILD_TYPE STREQUAL "Release")
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    # using Visual Studio C++
-    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(CMAKE_CXX_FLAGS "/Zi /Od /JMC /WX")
-    endif (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    if (CMAKE_BUILD_TYPE STREQUAL "Release")
-        set(CMAKE_CXX_FLAGS "/Ot /O2")
-    endif (CMAKE_BUILD_TYPE STREQUAL "Release")
-else ()
-    message(FATAL_ERROR "Compiler not supported")
+        if (CMAKE_BUILD_TYPE STREQUAL "Release")
+            set(CMAKE_CXX_FLAGS "-g0 -ggdb0 -glldb0 -O3")
+        endif ()
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        # using GCC
+        if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+            set(CMAKE_CXX_FLAGS "-g -ggdb3 -O0 -Wall -Wextra -Wpedantic -Wfloat-equal -Werror")
+            if (${ENABLE_ASAN})
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+            endif ()
+        endif ()
+        if (CMAKE_BUILD_TYPE STREQUAL "Release")
+            set(CMAKE_CXX_FLAGS "-g0 -ggdb0 -O3")
+        endif ()
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        # using Visual Studio C++
+        if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+            set(CMAKE_CXX_FLAGS "/Zi /Od /JMC /WX")
+        endif ()
+        if (CMAKE_BUILD_TYPE STREQUAL "Release")
+            set(CMAKE_CXX_FLAGS "/Ot /O2")
+        endif ()
+    else ()
+        message(FATAL_ERROR "Compiler not supported")
+    endif ()
 endif ()
-
 include_directories(
-        inc/
-        inc/private
+        include/
 )
 
-file(GLOB PRIVATE_INC_FILES CONFIGURE_DEPENDS
-        ${PROJECT_SOURCE_DIR}/inc/private/*.hpp
-        )
-file(GLOB PUBLIC_INC_FILES CONFIGURE_DEPENDS
-        ${PROJECT_SOURCE_DIR}/inc/*.hpp
-        )
-file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS
-        ${PROJECT_SOURCE_DIR}/src/*.cpp
-        )
+file(GLOB INC_FILES CONFIGURE_DEPENDS
+        include/*.hpp
+)
+file(GLOB SRC_FILES CONFIGURE_DEPENDS
+        source/*.cpp
+)
 
-set(LIB_VERSION 1.0.2)
+set(LIB_VERSION 3.0.0)
 
 if ("${CMAKE_INSTALL_PREFIX}" STREQUAL "")
-    message(STATUS "CMAKE_INSTALL_PREFIX is not set. $ENV{HOME} directory will be used")
-    set(INSTALL_PREFIX "$ENV{HOME}/tristan_libs")
-else ()
-    set(INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
-endif ("${CMAKE_INSTALL_PREFIX}" STREQUAL "")
+    message(STATUS "${PROJECT_NAME}: CMAKE_INSTALL_PREFIX is not set. ${CMAKE_BINARY_DIR} directory will be used")
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/mt_libs")
+else()
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/mt_libs")
+endif ()
 
-set(PROJECT_INSTALL_DIR ${INSTALL_PREFIX}/${PROJECT_NAME})
-set(LIBRARY_INSTALL_DIR ${PROJECT_INSTALL_DIR}/${CMAKE_BUILD_TYPE})
-message(STATUS "Library install directory is set to ${LIBRARY_INSTALL_DIR}")
-set(INCLUDE_INSTALL_DIR ${LIBRARY_INSTALL_DIR}/inc)
-message(STATUS "Include install directory is set to ${INCLUDE_INSTALL_DIR}")
-set(CMAKE_CONFIG_INSTALL_DIR ${INSTALL_PREFIX}/cmake/${CMAKE_BUILD_TYPE})
-message(STATUS "CMake config files install directory is set to ${CMAKE_CONFIG_INSTALL_DIR}")
+string(TOLOWER ${CMAKE_BUILD_TYPE} BUILD_TYPE)
 
-if (BUILD_SHARED)
-    message(STATUS "Will build shared library")
-    add_library(${PROJECT_NAME} SHARED)
-else ()
-    message(STATUS "Will build static library")
+set(PROJECT_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME})
+set(LIBRARY_INSTALL_DIR ${PROJECT_INSTALL_DIR}/${BUILD_TYPE})
+message(STATUS "${PROJECT_NAME}: Library install directory is set to ${LIBRARY_INSTALL_DIR}")
+set(INCLUDE_INSTALL_DIR ${LIBRARY_INSTALL_DIR}/include)
+message(STATUS "${PROJECT_NAME}: Include install directory is set to ${INCLUDE_INSTALL_DIR}")
+
+if (NOT ${PROJECT_IS_TOP_LEVEL})
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        add_compile_definitions(MT_DEBUG)
+    endif ()
+    set(SOCKETS_LIBRARY_DIR ${LIBRARY_INSTALL_DIR} PARENT_SCOPE)
+    set(SOCKETS_INCLUDE_DIR ${INCLUDE_INSTALL_DIR} PARENT_SCOPE)
+endif ()
+
+if (BUILD_STATIC)
+    message(STATUS "${PROJECT_NAME}: Will build static library")
     add_library(${PROJECT_NAME} STATIC)
-endif (BUILD_SHARED)
+else ()
+    message(STATUS "${PROJECT_NAME}: Will build shared library")
+    add_library(${PROJECT_NAME} SHARED)
+endif ()
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(${PROJECT_NAME} PUBLIC TRISTAN_DEBUG)
-endif (CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 if (${ENABLE_ASAN} AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     string(REPLACE "." ";" CLANG_VERSION ${CMAKE_CXX_COMPILER_VERSION})
@@ -101,62 +101,34 @@ if (${ENABLE_ASAN} AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_BUILD_TY
     string(STRIP ${PATH_TO_CLANG_LIB_DIRECTORY} PATH_TO_CLANG_LIB_DIRECTORY)
     target_link_directories(${PROJECT_NAME} PRIVATE
             ${PATH_TO_CLANG_LIB_DIRECTORY}
-            )
+    )
     target_link_libraries(${PROJECT_NAME} PRIVATE
             -lclang_rt.asan-x86_64
-            )
-endif (${ENABLE_ASAN} AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    )
+endif ()
 
-target_sources(${PROJECT_NAME}
+target_sources(
+        ${PROJECT_NAME}
         PRIVATE ${SRC_FILES}
-        PRIVATE ${PRIVATE_INC_FILES}
-        PUBLIC ${PUBLIC_INC_FILES}
-        )
+        PUBLIC ${INC_FILES}
+)
 
-set_target_properties(${PROJECT_NAME}
+set_target_properties(
+        ${PROJECT_NAME}
         PROPERTIES
         VERSION ${LIB_VERSION}
         OUTPUT_NAME ${PROJECT_NAME}
-        )
-
-if (GENERATE_DEB_PACKAGE)
-    add_custom_command(
-            TARGET ${PROJECT_NAME}
-            POST_BUILD
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMAND cpack .
-    )
-endif (GENERATE_DEB_PACKAGE)
-
-include(CMakePackageConfigHelpers)
-
-configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/PackageConfig.cmake.in
-        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-        INSTALL_DESTINATION ${CMAKE_CONFIG_INSTALL_DIR}
-        PATH_VARS INCLUDE_INSTALL_DIR LIBRARY_INSTALL_DIR)
-
-write_basic_package_version_file(
-        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-        VERSION ${LIB_VERSION}
-        COMPATIBILITY SameMajorVersion
 )
+if (BUILD_DOCS)
+    find_package(Doxygen REQUIRED doxygen)
+    set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Docs)
+    set(DOXYGEN_GENERATE_HTML YES)
+    set(DOXYGEN_GENERATE_LATEX NO)
+    set(DOXYGEN_SORT_MEMBER_DOCS NO)
+    doxygen_add_docs(
+            doxygen
+            ${PROJECT_SOURCE_DIR}/inc
+            ALL
+    )
+endif ()
 
-install(TARGETS ${PROJECT_NAME}
-        CONFIGURATIONS ${CMAKE_BUILD_TYPE}
-        LIBRARY DESTINATION ${LIBRARY_INSTALL_DIR})
-
-install(FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-        CONFIGURATIONS ${CMAKE_BUILD_TYPE}
-        DESTINATION ${CMAKE_CONFIG_INSTALL_DIR})
-
-install(FILES
-        ${PUBLIC_INC_FILES}
-        CONFIGURATIONS ${CMAKE_BUILD_TYPE}
-        DESTINATION ${INCLUDE_INSTALL_DIR})
-
-set(CPACK_GENERATOR "DEB")
-set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "tristan.it@outlook.com")
-include(CPack)
