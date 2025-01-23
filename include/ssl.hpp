@@ -16,43 +16,29 @@ namespace mt::sockets {
         friend class InetSocket;
 
     public:
+        explicit Ssl(int32_t socket);
         Ssl(const Ssl& other) = delete;
         Ssl(Ssl&& other) = delete;
-
         Ssl& operator=(const Ssl& other) = delete;
         Ssl& operator=(Ssl&& other) = delete;
-
-        static auto create(int32_t socket) -> std::unique_ptr< Ssl >;
-
         ~Ssl();
 
     private:
-        explicit Ssl(int32_t socket);
 
-        auto connect() -> std::error_code;
+        [[nodiscard]] auto connect() -> std::error_code;
+        [[nodiscard]] auto verifyHost(const std::string& host) const -> bool;
+        [[nodiscard]] auto verifyIp(uint32_t ip) const -> bool;
+        [[nodiscard]] auto verifyIp(uint64_t ip) const -> bool;
+        [[nodiscard]] auto verifyStartDate() const -> bool;
+        [[nodiscard]] auto verifyEndDate() const -> bool;
 
-        auto verifyHost(const std::string& host) -> bool;
-        auto verifyIp(uint32_t ip) -> bool;
-        auto verifyIp(uint64_t ip) -> bool;
-        auto verifyStartDate() -> bool;
-        auto verifyEndDate() -> bool;
+        [[nodiscard]] auto write(std::byte byte) const -> std::error_code;
+        [[nodiscard]] auto write(std::vector< std::byte >::const_iterator p_begin, std::vector< std::byte >::const_iterator p_end) const -> std::pair< std::error_code, uint64_t >;
 
-        [[nodiscard]] auto write(uint8_t byte) -> std::pair< std::error_code, uint8_t >;
+        [[nodiscard]] auto read() const -> std::pair< std::error_code, std::byte >;
+        [[nodiscard]] auto read(uint16_t size) const -> std::pair< std::error_code, std::vector< std::byte > >;
 
-        [[nodiscard]] auto write(const std::vector< uint8_t >& data, uint16_t size = 0, uint64_t offset = 0) -> std::pair< std::error_code, uint64_t >;
-
-        template < class ObjectClassToSend >
-        auto write(ObjectClassToSend object) -> std::pair< std::error_code, uint64_t >
-            requires std::is_standard_layout_v< ObjectClassToSend >
-        {
-            std::vector< uint8_t > temp_data(reinterpret_cast< uint8_t* >(object), reinterpret_cast< uint8_t* >(object) + sizeof(object));
-            return Ssl::write(temp_data);
-        }
-
-        [[nodiscard]] auto read() -> std::pair< std::error_code, uint8_t >;
-        [[nodiscard]] auto read(std::vector<uint8_t>& data, uint16_t size) -> std::pair< std::error_code, std::vector< uint8_t > >;
-
-        void shutdown();
+        void shutdown() const;
 
         ssl_ctx_st* m_context;
         ssl_st* m_ssl;

@@ -2,13 +2,15 @@
 #define SOCKETS_SOCKET_COMMON_HPP
 
 #include <cstdint>
-#include <string>
-#include <system_error>
-#include <vector>
-#include <optional>
-#include <memory>
-
+#include <concepts>
 namespace mt::sockets {
+
+    namespace concepts {
+        template < class Type >
+        concept write_compatible = std::is_integral_v< std::decay_t< Type > >;
+        template < class Type >
+        concept delimiter_compatible = write_compatible< Type >;
+    }  // namespace concepts
 
     enum class SocketType : uint8_t {
         STREAM,

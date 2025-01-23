@@ -1,25 +1,29 @@
 BasedOnStyle: LLVM
-AccessModifierOffset: -4
+AccessModifierOffset: -2
 AlignAfterOpenBracket: Align
 AlignArrayOfStructures: Left
-AlignConsecutiveAssignments: None
+AlignConsecutiveAssignments:
+  Enabled: false
 AlignConsecutiveBitFields: Consecutive
-AlignConsecutiveDeclarations: None
+AlignConsecutiveDeclarations:
+  Enabled: false
 AlignConsecutiveMacros: Consecutive
+AlignConsecutiveShortCaseStatements:
+  Enabled: false
 AlignEscapedNewlines: Left
 AlignOperands: AlignAfterOperator
 AlignTrailingComments: true
-AllowAllArgumentsOnNextLine: true
-AllowAllConstructorInitializersOnNextLine: true
-AllowAllParametersOfDeclarationOnNextLine: true
-AllowShortBlocksOnASingleLine: Always
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+#AllowBreakBeforeNoexceptSpecifier: Never
+AllowShortBlocksOnASingleLine: Never
 AllowShortCaseLabelsOnASingleLine: false
+#AllowShortCompoundRequirementOnASingleLine: true
 AllowShortEnumsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: All
+AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: None
 AllowShortLoopsOnASingleLine: false
-AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: MultiLine
 BinPackArguments: false
@@ -41,31 +45,41 @@ BraceWrapping:
   BeforeLambdaBody: false
   BeforeWhile: false
   IndentBraces: false
-  SplitEmptyFunction: false
-  SplitEmptyRecord: false
-  SplitEmptyNamespace: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+#BreakAfterReturnType: All
+BreakArrays: false
 BreakBeforeBinaryOperators: All
 BreakBeforeConceptDeclarations: true
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: AfterColon
+#BreakFunctionDefinitionParameters: true
 BreakInheritanceList: AfterComma
 BreakStringLiterals: true
-ColumnLimit: 160
+#BreakTemplateDeclarations: Yes
+ColumnLimit: 180
 CompactNamespaces: false
 ContinuationIndentWidth: 4
 EmptyLineAfterAccessModifier: Never
 EmptyLineBeforeAccessModifier: LogicalBlock
 FixNamespaceComments: true
 IncludeBlocks: Regroup
+#IncludeCategories:
+#  - Regex: '^"core/.*.hpp'
+#    Priority: 1
+#  - Regex:
 IndentAccessModifiers: false
 IndentCaseBlocks: false
 IndentCaseLabels: true
 IndentExternBlock: Indent
 IndentGotoLabels: false
 IndentPPDirectives: BeforeHash
+IndentRequiresClause: true
 IndentWidth: 4
 IndentWrappedFunctionNames: true
-InsertTrailingCommas: None
+InsertBraces: false
+InsertTrailingCommas: Wrapped
 KeepEmptyLinesAtTheStartOfBlocks: true
 LambdaBodyIndentation: Signature
 Language: Cpp
@@ -75,12 +89,14 @@ ObjCSpaceAfterProperty: false
 ObjCSpaceBeforeProtocolList: true
 PPIndentWidth: 2
 PackConstructorInitializers: Never
-PointerAlignment: Left
-QualifierAlignment: Left
+PointerAlignment: Right
+QualifierAlignment: Leave
 #QualifierOrder: ['inline', 'static', 'const', 'volatile', 'type']
-ReferenceAlignment: Pointer
+ReferenceAlignment: Left
 ReflowComments: false
 RemoveBracesLLVM: false
+RequiresClausePosition: OwnLine
+RequiresExpressionIndentation: Keyword
 SeparateDefinitionBlocks: Always
 SortIncludes: Never
 SortUsingDeclarations: false
@@ -92,7 +108,9 @@ SpaceBeforeCaseColon: false
 SpaceBeforeCpp11BracedList: false
 SpaceBeforeCtorInitializerColon: true
 SpaceBeforeInheritanceColon: true
+SpaceBeforeJsonColon: false
 SpaceBeforeParens: ControlStatements
+SpacesInParens: Never
 SpaceBeforeRangeBasedForLoopColon: false
 SpaceBeforeSquareBrackets: false
 SpaceInEmptyBlock: true
@@ -102,8 +120,8 @@ SpacesInAngles: true
 SpacesInCStyleCastParentheses: false
 SpacesInConditionalStatement: false
 SpacesInContainerLiterals: true
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
+SpacesInSquareBrackets: true
 Standard: c++20
 TabWidth: 4
 UseTab: Never
+#StatementMacros: [ 'shellTrace', 'shellDebug', 'shellError', 'shellWarning', 'shellInfo', 'shellFatal' ]

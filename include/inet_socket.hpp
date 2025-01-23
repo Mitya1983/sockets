@@ -9,179 +9,54 @@ namespace mt::sockets {
 
     class Ssl;
 
-    /**
-     * \brief CLass which is used to connect to remote hosts
-     */
     class InetSocket {
-    public:
-        /**
-         * \brief Constructor
-         * \param p_socket_type SocketType. Default is set to SocketType::STREAM
-         */
+      public:
         explicit InetSocket(SocketType p_socket_type = SocketType::STREAM);
-        /**
-         * \brief Deleted copy constructor
-         */
         InetSocket(const InetSocket&) = delete;
-        /**
-         * \brief Deleted move constructor
-         */
         InetSocket(InetSocket&&) = delete;
-        /**
-         * \brief Deleted copy assignment operator
-         */
         InetSocket& operator=(const InetSocket&) = delete;
-        /**
-         * \brief Deleted move assignment operator
-         */
         InetSocket& operator=(InetSocket&&) = delete;
-        /**
-         * \brief Destructor
-         */
         ~InetSocket();
 
-        /**
-         * \brief Sets IP
-         * If socket is dedicated to be a server - ip will be considered as local, if socket is dedicated to be a client - ip will be considered as remote
-         * \param p_ip uint32_t - IP in network byte order
-         * \param p_host_name const std::string& - optional parameter to store human readable host name
-         */
-        void setHost(uint32_t p_ip, const std::string& p_host_name = "");
-        /**
-         * \brief Sets port
-         * If socket is dedicated to be a server - port will be considered as local, if socket is dedicated to be a client - port will be considered as remote
-         * \param p_port uint16_t - port in network byte order
-         */
+        void setHost(uint32_t p_ip, std::string p_host_name = "");
         void setPort(uint16_t p_port);
-        /**
-         * \brief Sets socket as non blocking
-         * \param p_non_blocking bool. Default is true
-         */
         void setNonBlocking(bool p_non_blocking = true);
-        /**
-         * \brief Sets send and receive timeout.
-         * If socket is in non blocking state does nothing
-         * \param p_seconds std::chrono::seconds
-         */
         void setTimeOut(std::chrono::seconds p_seconds);
-        /**
-         * \brief Resets error to tristan::socket::Error::SUCCESS
-         */
         void resetError();
-        /**
-         * \brief Binds socket with ip and port.
-         * Mandatory function for server side socket
-         */
         void bind();
-        /**
-         * \brief Sets socket to be in listen mode
-         * \param p_connection_count_limit uint32_t
-         */
         void listen(uint32_t p_connection_count_limit);
-        /**
-         * \brief Connects socket to remote ip and port
-         * \param p_ssl bool
-         */
         void connect(bool p_ssl = true);
-        /**
-         * \brief Closes the socket
-         */
         void close();
-        /**
-         * \brief Shutdowns the socket
-         */
         void shutdown();
-        /**
-         * \brief Starts accepting incoming connections
-         * \return std::optional<std::unique_ptr<InetSocket>>
-         * If error occurred the std::nullopt is returned and error is set respectively
-         */
-        [[nodiscard]] auto accept() -> std::optional<std::unique_ptr<InetSocket>>;
-        /**
-         * \brief Write one byte of data
-         * \param p_byte uint8_t
-         * \return uint8_t. On error 0 is returned and error is set respectively.
-         */
-        auto write(uint8_t p_byte) -> uint8_t;
-        /**
-         * \overload
-         * \brief Write data to socket
-         * \param p_data const std::vector< uint8_t >&
-         * \param p_size uint16_t size of data to send
-         * \param p_offset position of first byte
-         * \return uint64_t indicating number of data sent or 0 if data is empty or error occurred
-         */
-        auto write(const std::vector< uint8_t >& p_data, uint16_t p_size = 0, uint64_t p_offset = 0) -> uint64_t;
-        /**
-         * \overload
-         * \brief Writes object casted to std::vector< uint8_t > to socket
-         * \tparam ObjectClassToSend Class which should meat requirement of std::is_standard_layout_v
-         * \param p_object ObjectClassToSend
-         * \return uint64_t indicating number of data sent or 0 if data is empty or error occurred
-         */
-        template < class ObjectClassToSend >
-        auto write(ObjectClassToSend p_object) -> uint64_t
-            requires std::is_standard_layout_v< ObjectClassToSend >
-        {
-            std::vector< uint8_t > l_temp_data(reinterpret_cast< uint8_t* >(&p_object), reinterpret_cast< uint8_t* >(&p_object) + sizeof(p_object));
-            return InetSocket::write(l_temp_data);
-        }
-        /**
-         * \brief Reads one byte from socket
-         * \return uint8_t.
-         * This function may return 0 on error or on EOF
-         */
-        [[nodiscard]] auto read() -> uint8_t;
-        /**
-         * \overload
-         * \brief Reads provided size of data from socket
-         * \param p_size
-         * \return std::vector< uint8_t >
-         */
-        [[nodiscard]] auto read(uint16_t p_size) -> std::vector< uint8_t >;
-        /**
-         * \brief reads from socket until the delimiter is reached
-         * \param p_delimiter uint8_t
-         * \return std::vector< uint8_t >
-         */
-        [[nodiscard]] auto readUntil(uint8_t p_delimiter) -> std::vector< uint8_t >;
-        /**
-         * \overload
-         * \brief reads from socket until the delimiter is reached
-         * \param p_delimiter const std::vector< uint8_t >&
-         * \return std::vector< uint8_t >
-         */
-        [[nodiscard]] auto readUntil(const std::vector< uint8_t >& p_delimiter) -> std::vector< uint8_t >;
-
-        /**
-         * \brief Returns ip
-         * \return uint32_t
-         */
+        template < class ValueType >
+            requires std::is_same_v< ValueType, std::byte > or concepts::write_compatible< ValueType >
+        void write(ValueType p_value);
+        auto write(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> uint64_t
+            requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > >
+                 and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >);
+        auto write(std::ranges::input_range auto&& range) -> uint64_t;
+        [[nodiscard]] auto accept() -> std::optional< std::unique_ptr< InetSocket > >;
+        [[nodiscard]] auto read() -> std::byte;
+        [[nodiscard]] auto read(uint16_t p_size) -> std::vector< std::byte >;
+        template < class ValueType >
+            requires std::is_same_v< std::decay_t< ValueType >, std::byte > or concepts::delimiter_compatible< ValueType >
+        [[nodiscard]] auto readUntil(ValueType p_value) -> std::vector< std::byte >;
+        [[nodiscard]] auto readUntil(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> std::vector< std::byte >
+            requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > >
+                 and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >);
+        [[nodiscard]] auto readUntil(std::ranges::input_range auto&& range) -> std::vector< std::byte >;
         [[nodiscard]] auto ip() const noexcept -> uint32_t;
-        /**
-         * \brief Returns port
-         * \return uint16_t
-         */
         [[nodiscard]] auto port() const noexcept -> uint16_t;
-        /**
-         * \brief Returns error
-         * \return std::error_code
-         */
         [[nodiscard]] auto error() const noexcept -> std::error_code;
-        /**
-         * \brief Returns socket non blocking state
-         * \return bool
-         */
         [[nodiscard]] auto nonBlocking() const noexcept -> bool;
-        /**
-         * \brief Returns socket connection state
-         * \return bool
-         */
         [[nodiscard]] auto connected() const noexcept -> bool;
 
-    private:
-
+      private:
         explicit InetSocket(bool);
+        void write_byte(std::byte p_byte);
+        auto write_vector(std::vector< std::byte >::const_iterator p_begin, std::vector< std::byte >::const_iterator p_end) -> uint64_t;
+        auto read_until(std::byte p_delimiter) -> std::vector< std::byte >;
+        auto read_until(std::vector< std::byte >::const_iterator p_delimiter_begin, std::vector< std::byte >::const_iterator p_delimiter_end) -> std::vector< std::byte >;
 
         std::string m_host_name;
 
@@ -192,9 +67,8 @@ namespace mt::sockets {
 
         uint16_t m_port;
 
-        std::unique_ptr<Ssl> m_ssl;
+        std::unique_ptr< Ssl > m_ssl;
         SocketType m_type;
-
 
         bool m_non_blocking;
         bool m_bound;
@@ -203,6 +77,93 @@ namespace mt::sockets {
         bool m_connected;
     };
 
-}  // namespace tristan::sockets
+    template < class ValueType >
+        requires std::is_same_v< ValueType, std::byte > or concepts::write_compatible< ValueType >
+    void InetSocket::write(ValueType p_value) {
+        if constexpr (constexpr auto value_size = sizeof(std::decay_t< ValueType >); value_size == 1) {
+            if constexpr (std::is_same_v< ValueType, std::byte >) {
+                write_byte(p_value);
+            } else {
+                write_byte(static_cast< std::byte >(p_value));
+            }
+        } else {
+            const std::vector< std::byte > data{reinterpret_cast< std::byte * >(&p_value), reinterpret_cast< std::byte * >(&p_value) + value_size};
+            write_vector(data.begin(), data.end());
+        }
+    }
+
+    auto InetSocket::write(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> uint64_t
+        requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > >
+             and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >)
+    {
+        if constexpr (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte >) {
+            return write_vector(begin, end);
+        } else {
+            std::vector< std::byte > data;
+            if constexpr (constexpr auto value_size = sizeof(std::decay_t< decltype(*begin) >); value_size == 1) {
+                data.reserve(end - begin);
+                std::transform(begin, end, data, []< typename ValueType >(ValueType&& value) -> std::byte {
+                    return static_cast< std::byte >(value);
+                });
+            } else {
+                auto size = (end - begin) * value_size;
+                data.reserve(size);
+                while (begin != end) {
+                    std::copy_n(reinterpret_cast< std::byte >(&*begin), size, std::back_inserter(data));
+                    ++begin;
+                }
+            }
+            return write_vector(data.begin(), data.end());
+        }
+    }
+
+    auto InetSocket::write(std::ranges::input_range auto&& range) -> uint64_t {
+        return write(range.begin(), range.end());
+    }
+
+    template < class ValueType >
+        requires std::is_same_v< std::decay_t< ValueType >, std::byte > or concepts::delimiter_compatible< ValueType >
+    auto InetSocket::readUntil(ValueType p_value) -> std::vector< std::byte > {
+        if constexpr (constexpr auto value_size = sizeof(std::decay_t< ValueType >); value_size == 1) {
+            if constexpr (std::is_same_v< ValueType, std::byte >) {
+                return read_until(p_value);
+            } else {
+                return read_until(static_cast< std::byte >(p_value));
+            }
+        } else {
+            const std::vector< std::byte > data{reinterpret_cast< std::byte * >(&p_value), reinterpret_cast< std::byte * >(&p_value) + value_size};
+            return read_until(data.begin(), data.end());
+        }
+    }
+
+    auto InetSocket::readUntil(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> std::vector< std::byte >
+        requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > >
+              && (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >)
+    {
+        if constexpr (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte >) {
+            return read_until(begin, end);
+        } else {
+            std::vector< std::byte > data;
+            if constexpr (constexpr auto value_size = sizeof(std::decay_t< decltype(*begin) >); value_size == 1) {
+                data.reserve(end - begin);
+                std::transform(begin, end, data, []< typename ValueType >(ValueType&& value) -> std::byte {
+                    return static_cast< std::byte >(value);
+                });
+            } else {
+                auto size = (end - begin) * value_size;
+                data.reserve(size);
+                while (begin != end) {
+                    std::copy_n(reinterpret_cast< std::byte >(&*begin), size, std::back_inserter(data));
+                    ++begin;
+                }
+            }
+            return read_until(data.begin(), data.end());
+        }
+    }
+
+    auto InetSocket::readUntil(std::ranges::input_range auto&& range) -> std::vector< std::byte > {
+        return readUntil(range.begin(), range.end());
+    }
+}  // namespace mt::sockets
 
 #endif  //INET_SOCKET_HPP
