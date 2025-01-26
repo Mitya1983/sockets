@@ -109,7 +109,8 @@ namespace mt::sockets {
                 auto size = (end - begin) * value_size;
                 data.reserve(size);
                 while (begin != end) {
-                    std::copy_n(reinterpret_cast< std::byte >(&*begin), value_size, std::back_inserter(data));
+                    auto value = *begin;
+                    std::copy_n(reinterpret_cast< std::byte* >(&value), value_size, std::back_inserter(data));
                     ++begin;
                 }
             }
@@ -153,7 +154,8 @@ namespace mt::sockets {
                 auto size = (end - begin) * value_size;
                 data.reserve(size);
                 while (begin != end) {
-                    std::copy_n(reinterpret_cast< std::byte >(&*begin), value_size, std::back_inserter(data));
+                    auto value = *begin;
+                    std::copy_n(reinterpret_cast< std::byte* >(&value), value_size, std::back_inserter(data));
                     ++begin;
                 }
             }
