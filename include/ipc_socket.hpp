@@ -55,7 +55,7 @@ namespace mt::sockets {
       private:
         explicit IpcSocket(bool);
         void write_byte(std::byte p_byte);
-        auto write_vector(std::vector< std::byte >::const_iterator p_begin, std::vector< std::byte >::const_iterator p_end) -> uint64_t;
+        auto write_range(const std::byte* bytes, uint64_t size) -> uint64_t;
         auto read_until(std::byte p_delimiter) -> std::vector< std::byte >;
         auto read_until(std::vector< std::byte >::const_iterator p_delimiter_begin, std::vector< std::byte >::const_iterator p_delimiter_end) -> std::vector< std::byte >;
 
@@ -87,8 +87,7 @@ namespace mt::sockets {
                 write_byte(static_cast< std::byte >(p_value));
             }
         } else {
-            const std::vector< std::byte > data{reinterpret_cast< std::byte * >(&p_value), reinterpret_cast< std::byte * >(&p_value) + value_size};
-            write_vector(data.begin(), data.end());
+            write_range(reinterpret_cast< std::byte * >(&p_value), value_size);
         }
     }
 
@@ -97,24 +96,18 @@ namespace mt::sockets {
              and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >)
     {
         if constexpr (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte >) {
-            return write_vector(begin, end);
+            return write_range(&*begin, end - begin);
         } else {
-            std::vector< std::byte > data;
             if constexpr (constexpr auto value_size = sizeof(std::decay_t< decltype(*begin) >); value_size == 1) {
-                data.reserve(end - begin);
-                std::transform(begin, end, data, []< typename ValueType >(ValueType&& value) -> std::byte {
-                    return static_cast< std::byte >(value);
-                });
+                return write_range(reinterpret_cast<std::byte*>(&*begin), end - begin);
             } else {
-                auto size = (end - begin) * value_size;
-                data.reserve(size);
+                uint64_t bytes_written{0};
                 while (begin != end) {
-                    auto value = *begin;
-                    std::copy_n(reinterpret_cast< std::byte* >(&value), value_size, std::back_inserter(data));
+                    bytes_written += write_range(reinterpret_cast< std::byte* >(&*begin), value_size);
                     ++begin;
                 }
+                return bytes_written;
             }
-            return write_vector(data.begin(), data.end());
         }
     }
 
@@ -154,8 +147,7 @@ namespace mt::sockets {
                 auto size = (end - begin) * value_size;
                 data.reserve(size);
                 while (begin != end) {
-                    auto value = *begin;
-                    std::copy_n(reinterpret_cast< std::byte* >(&value), value_size, std::back_inserter(data));
+                    std::copy_n(reinterpret_cast< std::byte* >(&*begin), value_size, std::back_inserter(data));
                     ++begin;
                 }
             }

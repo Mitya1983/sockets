@@ -152,11 +152,11 @@ auto mt::sockets::Ssl::write(const std::byte byte) const -> std::error_code {
     return error_code;
 }
 
-auto mt::sockets::Ssl::write(const std::vector< std::byte >::const_iterator p_begin, const std::vector< std::byte >::const_iterator p_end) const
+auto mt::sockets::Ssl::write(const std::byte* bytes, const uint64_t size) const
     -> std::pair< std::error_code, uint64_t > {
     uint64_t bytes_writen = 0;
     std::error_code error_code;
-    if (const auto status = SSL_write_ex(m_ssl, &*p_begin, p_end - p_begin, &bytes_writen); status <= 0) {
+    if (const auto status = SSL_write_ex(m_ssl, bytes, size, &bytes_writen); status <= 0) {
         switch (SSL_get_error(m_ssl, status)) {
             case SSL_ERROR_NONE: {
                 break;

@@ -33,7 +33,7 @@ namespace mt::sockets {
         [[nodiscard]] auto verifyEndDate() const -> bool;
 
         [[nodiscard]] auto write(std::byte byte) const -> std::error_code;
-        [[nodiscard]] auto write(std::vector< std::byte >::const_iterator p_begin, std::vector< std::byte >::const_iterator p_end) const -> std::pair< std::error_code, uint64_t >;
+        [[nodiscard]] auto write(const std::byte* bytes, uint64_t size) const -> std::pair< std::error_code, uint64_t >;
 
         [[nodiscard]] auto read() const -> std::pair< std::error_code, std::byte >;
         [[nodiscard]] auto read(uint16_t size) const -> std::pair< std::error_code, std::vector< std::byte > >;

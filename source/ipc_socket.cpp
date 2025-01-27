@@ -759,21 +759,20 @@ void mt::sockets::IpcSocket::write_byte(const std::byte p_byte) {
     }
 }
 
-auto mt::sockets::IpcSocket::write_vector(const std::vector< std::byte >::const_iterator p_begin, const std::vector< std::byte >::const_iterator p_end) -> uint64_t {
+auto mt::sockets::IpcSocket::write_range(const std::byte* bytes, const uint64_t size) -> uint64_t {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return 0;
     }
-    const uint64_t size = p_end - p_begin;
     if (size == 0) {
         return 0;
     }
 
     uint64_t bytes_sent = 0;
     if (m_connected) {
-        bytes_sent = ::send(m_socket, &*p_begin, size, MSG_NOSIGNAL);
+        bytes_sent = ::send(m_socket, bytes, size, MSG_NOSIGNAL);
     } else {
-        if (m_type == mt::sockets::SocketType::STREAM) {
+        if (m_type == SocketType::STREAM) {
             m_error = makeError(Error::SOCKET_NOT_CONNECTED);
         } else {
             sockaddr_un peer_address{};
@@ -783,7 +782,7 @@ auto mt::sockets::IpcSocket::write_vector(const std::vector< std::byte >::const_
                 peer_address.sun_path[ 0 ] = 0;
             }
             const auto address_length = sizeof(peer_address.sun_family) + m_peer_name.size();
-            bytes_sent = ::sendto(m_socket, &*p_begin, size, MSG_NOSIGNAL, reinterpret_cast< struct sockaddr * >(&peer_address), address_length);
+            bytes_sent = ::sendto(m_socket, bytes, size, MSG_NOSIGNAL, reinterpret_cast< struct sockaddr * >(&peer_address), address_length);
         }
     }
     if (static_cast< int8_t >(bytes_sent) < 0) {

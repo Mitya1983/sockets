@@ -827,12 +827,11 @@ void mt::sockets::InetSocket::write_byte(const std::byte p_byte) {
     }
 }
 
-auto mt::sockets::InetSocket::write_vector(const std::vector< std::byte >::const_iterator p_begin, const std::vector< std::byte >::const_iterator p_end) -> uint64_t {
+auto mt::sockets::InetSocket::write_range(const std::byte* bytes, const uint64_t size) -> uint64_t {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return 0;
     }
-    const uint64_t size = p_end - p_begin;
     if (size == 0) {
         return 0;
     }
@@ -841,8 +840,8 @@ auto mt::sockets::InetSocket::write_vector(const std::vector< std::byte >::const
 
     if (m_connected) {
         if (m_ssl) {
-            auto [ error, bytes ] = m_ssl->write(p_begin, p_end);
-            bytes_sent = bytes;
+            auto [ error, bytes_written ] = m_ssl->write(bytes, size);
+            bytes_sent = bytes_written;
             if (error and error.value() == static_cast< int >(Error::SSL_TRY_AGAIN)) {
                 m_error = makeError(Error::WRITE_TRY_AGAIN);
             } else {
@@ -850,7 +849,7 @@ auto mt::sockets::InetSocket::write_vector(const std::vector< std::byte >::const
             }
             return bytes_sent;
         }
-        bytes_sent = ::send(m_socket, &*p_begin, size, MSG_NOSIGNAL);
+        bytes_sent = ::send(m_socket, bytes, size, MSG_NOSIGNAL);
     } else {
         if (m_type == SocketType::STREAM) {
             m_error = makeError(Error::SOCKET_NOT_CONNECTED);
@@ -859,7 +858,7 @@ auto mt::sockets::InetSocket::write_vector(const std::vector< std::byte >::const
             remote_address.sin_family = AF_INET;
             remote_address.sin_addr.s_addr = m_ip;
             remote_address.sin_port = m_port;
-            bytes_sent = ::sendto(m_socket, &*p_begin, size, MSG_NOSIGNAL, reinterpret_cast< sockaddr * >(&remote_address), sizeof(remote_address));
+            bytes_sent = ::sendto(m_socket, bytes, size, MSG_NOSIGNAL, reinterpret_cast< sockaddr * >(&remote_address), sizeof(remote_address));
         }
     }
     if (static_cast< int64_t >(bytes_sent) < 0) {
