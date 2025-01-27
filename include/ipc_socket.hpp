@@ -55,9 +55,9 @@ namespace mt::sockets {
       private:
         explicit IpcSocket(bool);
         void write_byte(std::byte p_byte);
-        auto write_range(const std::byte* bytes, uint64_t size) -> uint64_t;
+        auto write_range(const std::byte* p_bytes, uint64_t p_size) -> uint64_t;
         auto read_until(std::byte p_delimiter) -> std::vector< std::byte >;
-        auto read_until(std::vector< std::byte >::const_iterator p_delimiter_begin, std::vector< std::byte >::const_iterator p_delimiter_end) -> std::vector< std::byte >;
+        auto read_until(const std::byte* p_delimiter, int64_t p_delimiter_size) -> std::vector< std::byte >;
 
         std::string m_name;
         std::string m_peer_name;
@@ -125,8 +125,7 @@ namespace mt::sockets {
                 return read_until(static_cast< std::byte >(p_value));
             }
         } else {
-            const std::vector< std::byte > data{reinterpret_cast< std::byte * >(&p_value), reinterpret_cast< std::byte * >(&p_value) + value_size};
-            return read_until(data.begin(), data.end());
+            return read_until(reinterpret_cast< std::byte * >(&p_value), value_size);
         }
     }
 
@@ -135,23 +134,20 @@ namespace mt::sockets {
               && (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >)
     {
         if constexpr (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte >) {
-            return read_until(begin, end);
+            return read_until(&*begin, end - begin);
         } else {
-            std::vector< std::byte > data;
             if constexpr (constexpr auto value_size = sizeof(std::decay_t< decltype(*begin) >); value_size == 1) {
-                data.reserve(end - begin);
-                std::transform(begin, end, data, []< typename ValueType >(ValueType&& value) -> std::byte {
-                    return static_cast< std::byte >(value);
-                });
+                return read_until(reinterpret_cast<std::byte*>(&*begin), end - begin);
             } else {
                 auto size = (end - begin) * value_size;
-                data.reserve(size);
+                std::vector<std::byte> delimiter;
+                delimiter.reserve(size);
                 while (begin != end) {
-                    std::copy_n(reinterpret_cast< std::byte* >(&*begin), value_size, std::back_inserter(data));
+                    std::copy_n(reinterpret_cast< std::byte* >(&*begin), value_size, std::back_inserter(delimiter));
                     ++begin;
                 }
+                return read_until(delimiter.data(), std::ssize(delimiter));
             }
-            return read_until(data.begin(), data.end());
         }
     }
 

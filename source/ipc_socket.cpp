@@ -759,18 +759,18 @@ void mt::sockets::IpcSocket::write_byte(const std::byte p_byte) {
     }
 }
 
-auto mt::sockets::IpcSocket::write_range(const std::byte* bytes, const uint64_t size) -> uint64_t {
+auto mt::sockets::IpcSocket::write_range(const std::byte* p_bytes, const uint64_t p_size) -> uint64_t {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return 0;
     }
-    if (size == 0) {
+    if (p_size == 0) {
         return 0;
     }
 
     uint64_t bytes_sent = 0;
     if (m_connected) {
-        bytes_sent = ::send(m_socket, bytes, size, MSG_NOSIGNAL);
+        bytes_sent = ::send(m_socket, p_bytes, p_size, MSG_NOSIGNAL);
     } else {
         if (m_type == SocketType::STREAM) {
             m_error = makeError(Error::SOCKET_NOT_CONNECTED);
@@ -782,7 +782,7 @@ auto mt::sockets::IpcSocket::write_range(const std::byte* bytes, const uint64_t 
                 peer_address.sun_path[ 0 ] = 0;
             }
             const auto address_length = sizeof(peer_address.sun_family) + m_peer_name.size();
-            bytes_sent = ::sendto(m_socket, bytes, size, MSG_NOSIGNAL, reinterpret_cast< struct sockaddr * >(&peer_address), address_length);
+            bytes_sent = ::sendto(m_socket, p_bytes, p_size, MSG_NOSIGNAL, reinterpret_cast< struct sockaddr * >(&peer_address), address_length);
         }
     }
     if (static_cast< int8_t >(bytes_sent) < 0) {
@@ -891,30 +891,29 @@ auto mt::sockets::IpcSocket::read_until(const std::byte p_delimiter) -> std::vec
     return data;
 }
 
-auto mt::sockets::IpcSocket::read_until(const std::vector< std::byte >::const_iterator p_delimiter_begin, const std::vector< std::byte >::const_iterator p_delimiter_end)
+auto mt::sockets::IpcSocket::read_until(const std::byte* p_delimiter, const int64_t p_delimiter_size)
     -> std::vector< std::byte > {
     std::vector< std::byte > data;
-    const int64_t delimiter_size = p_delimiter_end - p_delimiter_begin;
-    data.reserve(delimiter_size);
+    data.reserve(p_delimiter_size);
     while (true) {
         const auto byte = read();
         if (m_error or byte == std::byte{0}) {
             break;
         }
         data.push_back(byte);
-        if (std::ssize(data) >= delimiter_size) {
-            if (std::ranges::equal(data.end() - delimiter_size, data.end(), p_delimiter_begin, p_delimiter_end)) {
+        if (std::ssize(data) >= p_delimiter_size) {
+            if (std::ranges::equal(data.end() - p_delimiter_size, data.end(), p_delimiter, p_delimiter + p_delimiter_size)) {
                 m_error = makeError(Error::READ_DONE);
                 break;
             }
-        } else if (std::ranges::equal(data.end(), data.end(), p_delimiter_begin, p_delimiter_end)) {
+        } else if (std::ranges::equal(data.begin(), data.end(), p_delimiter, p_delimiter + p_delimiter_size)) {
             m_error = makeError(Error::READ_DONE);
             break;
         }
     }
 
     if (m_error.value() == static_cast< int32_t >(Error::READ_DONE)) {
-        data.erase(data.end() - delimiter_size, data.end());
+        data.erase(data.end() - p_delimiter_size, data.end());
     }
     if (not data.empty()) {
         data.shrink_to_fit();
