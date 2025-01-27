@@ -219,7 +219,7 @@ void mt::sockets::InetSocket::connect(const bool p_ssl) {
         remote_address.sin_addr.s_addr = m_ip;
         remote_address.sin_port = m_port;
         if (const int32_t status = ::connect(m_socket, reinterpret_cast< struct sockaddr * >(&remote_address), sizeof(remote_address)); status < 0) {
-            Error error;
+            auto error{Error::SUCCESS};
             switch (errno) {
                 case EACCES: {
                     [[fallthrough]];
