@@ -11,7 +11,6 @@ mt::sockets::Ssl::Ssl(const int32_t socket) :
     m_server_certificate(nullptr),
     method(nullptr) {
 
-    OpenSSL_add_all_algorithms();
     method = TLS_client_method();
     if (method == nullptr) {
         const auto error = makeError(Error::SSL_METHOD_ERROR);
@@ -45,7 +44,7 @@ mt::sockets::Ssl::~Ssl() {
 
 auto mt::sockets::Ssl::connect() -> std::error_code {
     if (const auto status = SSL_connect(m_ssl); status < 0) {
-        switch (SSL_get_error(m_ssl, status)) {
+        switch (const auto error = SSL_get_error(m_ssl, status); error) {
             case SSL_ERROR_WANT_WRITE:
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_CONNECT:
