@@ -13,7 +13,7 @@ struct ssl_method_st;
 namespace mt::sockets {
 
     class Ssl {
-        friend class InetSocket;
+        friend class TcpSocket;
 
     public:
         explicit Ssl(int32_t socket);

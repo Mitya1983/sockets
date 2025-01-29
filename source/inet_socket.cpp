@@ -7,7 +7,7 @@
 #include <sys/fcntl.h>
 #include <arpa/inet.h>
 
-mt::sockets::InetSocket::InetSocket(const SocketType p_socket_type) :
+mt::sockets::TcpSocket::TcpSocket(const SocketType p_socket_type) :
     m_socket(-1),
     m_ip(0),
     m_port(0),
@@ -59,22 +59,22 @@ mt::sockets::InetSocket::InetSocket(const SocketType p_socket_type) :
     }
 }
 
-mt::sockets::InetSocket::~InetSocket() {
+mt::sockets::TcpSocket::~TcpSocket() {
     close();
 }
 
-void mt::sockets::InetSocket::setHost(const uint32_t p_ip, std::string p_host_name) {
+void mt::sockets::TcpSocket::setHost(const uint32_t p_ip, std::string p_host_name) {
     m_ip = p_ip;
     if (not p_host_name.empty()) {
         m_host_name = std::move(p_host_name);
     }
 }
 
-void mt::sockets::InetSocket::setPort(const uint16_t p_port) {
+void mt::sockets::TcpSocket::setPort(const uint16_t p_port) {
     m_port = p_port;
 }
 
-void mt::sockets::InetSocket::setNonBlocking(const bool p_non_blocking) {
+void mt::sockets::TcpSocket::setNonBlocking(const bool p_non_blocking) {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return;
@@ -92,7 +92,7 @@ void mt::sockets::InetSocket::setNonBlocking(const bool p_non_blocking) {
     m_non_blocking = p_non_blocking;
 }
 
-void mt::sockets::InetSocket::setTimeOut(const std::chrono::seconds p_seconds) {
+void mt::sockets::TcpSocket::setTimeOut(const std::chrono::seconds p_seconds) {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return;
@@ -113,11 +113,11 @@ void mt::sockets::InetSocket::setTimeOut(const std::chrono::seconds p_seconds) {
     }
 }
 
-void mt::sockets::InetSocket::resetError() {
+void mt::sockets::TcpSocket::resetError() {
     m_error = makeError(Error::SUCCESS);
 }
 
-void mt::sockets::InetSocket::bind() {
+void mt::sockets::TcpSocket::bind() {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return;
@@ -163,7 +163,7 @@ void mt::sockets::InetSocket::bind() {
     }
 }
 
-void mt::sockets::InetSocket::listen(const uint32_t p_connection_count_limit) {
+void mt::sockets::TcpSocket::listen(const uint32_t p_connection_count_limit) {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return;
@@ -204,7 +204,7 @@ void mt::sockets::InetSocket::listen(const uint32_t p_connection_count_limit) {
     m_listening = true;
 }
 
-void mt::sockets::InetSocket::connect(const bool p_ssl) {
+void mt::sockets::TcpSocket::connect(const bool p_ssl) {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return;
@@ -344,7 +344,7 @@ void mt::sockets::InetSocket::connect(const bool p_ssl) {
     }
 }
 
-void mt::sockets::InetSocket::close() {
+void mt::sockets::TcpSocket::close() {
     if (m_ssl) {
         if (m_error.value() != static_cast< int >(Error::SSL_IO_ERROR) and m_error.value() != static_cast< int >(Error::SSL_FATAL_ERROR)) {
             m_ssl->shutdown();
@@ -354,7 +354,7 @@ void mt::sockets::InetSocket::close() {
     ::close(m_socket);
 }
 
-void mt::sockets::InetSocket::shutdown() {
+void mt::sockets::TcpSocket::shutdown() {
     if (const auto status = ::shutdown(m_socket, SHUT_RDWR); status < 0) {
         Error error;
         switch (errno) {
@@ -386,7 +386,7 @@ void mt::sockets::InetSocket::shutdown() {
     }
 }
 
-auto mt::sockets::InetSocket::accept() -> std::optional< std::unique_ptr< mt::sockets::InetSocket > > {
+auto mt::sockets::TcpSocket::accept() -> std::optional< std::unique_ptr< mt::sockets::TcpSocket > > {
 
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
@@ -407,7 +407,7 @@ auto mt::sockets::InetSocket::accept() -> std::optional< std::unique_ptr< mt::so
 
     sockaddr_in peer_address{};
     uint32_t peer_address_length = sizeof(peer_address);
-    std::unique_ptr< mt::sockets::InetSocket > socket(new mt::sockets::InetSocket(true));
+    std::unique_ptr< mt::sockets::TcpSocket > socket(new mt::sockets::TcpSocket(true));
     socket->m_type = m_type;
     socket->m_socket = ::accept(m_socket, reinterpret_cast< struct sockaddr * >(&peer_address), &peer_address_length);
 
@@ -496,7 +496,7 @@ auto mt::sockets::InetSocket::accept() -> std::optional< std::unique_ptr< mt::so
     return socket;
 }
 
-auto mt::sockets::InetSocket::read() -> std::byte {
+auto mt::sockets::TcpSocket::read() -> std::byte {
 
     std::byte byte{0};
 
@@ -582,7 +582,7 @@ auto mt::sockets::InetSocket::read() -> std::byte {
     return byte;
 }
 
-auto mt::sockets::InetSocket::read(const uint16_t p_size) -> std::vector< std::byte > {
+auto mt::sockets::TcpSocket::read(const uint16_t p_size) -> std::vector< std::byte > {
 
     if (p_size == 0) {
         return {};
@@ -673,27 +673,27 @@ auto mt::sockets::InetSocket::read(const uint16_t p_size) -> std::vector< std::b
     return data;
 }
 
-auto mt::sockets::InetSocket::ip() const noexcept -> uint32_t {
+auto mt::sockets::TcpSocket::ip() const noexcept -> uint32_t {
     return m_ip;
 }
 
-auto mt::sockets::InetSocket::port() const noexcept -> uint16_t {
+auto mt::sockets::TcpSocket::port() const noexcept -> uint16_t {
     return m_port;
 }
 
-auto mt::sockets::InetSocket::error() const noexcept -> std::error_code {
+auto mt::sockets::TcpSocket::error() const noexcept -> std::error_code {
     return m_error;
 }
 
-auto mt::sockets::InetSocket::nonBlocking() const noexcept -> bool {
+auto mt::sockets::TcpSocket::nonBlocking() const noexcept -> bool {
     return m_non_blocking;
 }
 
-auto mt::sockets::InetSocket::connected() const noexcept -> bool {
+auto mt::sockets::TcpSocket::connected() const noexcept -> bool {
     return m_connected;
 }
 
-mt::sockets::InetSocket::InetSocket(bool) :
+mt::sockets::TcpSocket::TcpSocket(bool) :
     m_socket(-1),
     m_ip(0),
     m_port(0),
@@ -705,7 +705,7 @@ mt::sockets::InetSocket::InetSocket(bool) :
     m_connected(false) {
 }
 
-void mt::sockets::InetSocket::write_byte(const std::byte p_byte) {
+void mt::sockets::TcpSocket::write_byte(const std::byte p_byte) {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
     }
@@ -827,7 +827,7 @@ void mt::sockets::InetSocket::write_byte(const std::byte p_byte) {
     }
 }
 
-auto mt::sockets::InetSocket::write_range(const std::byte* p_bytes, const uint64_t p_size) -> uint64_t {
+auto mt::sockets::TcpSocket::write_range(const std::byte* p_bytes, const uint64_t p_size) -> uint64_t {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return 0;
@@ -955,7 +955,7 @@ auto mt::sockets::InetSocket::write_range(const std::byte* p_bytes, const uint64
     return bytes_sent;
 }
 
-auto mt::sockets::InetSocket::read_until(const std::byte p_delimiter) -> std::vector< std::byte > {
+auto mt::sockets::TcpSocket::read_until(const std::byte p_delimiter) -> std::vector< std::byte > {
     std::vector< std::byte > data;
 
     while (true) {
@@ -975,7 +975,7 @@ auto mt::sockets::InetSocket::read_until(const std::byte p_delimiter) -> std::ve
     return data;
 }
 
-auto mt::sockets::InetSocket::read_until(const std::byte* p_delimiter, int64_t p_delimiter_size)
+auto mt::sockets::TcpSocket::read_until(const std::byte* p_delimiter, int64_t p_delimiter_size)
     -> std::vector< std::byte > {
     std::vector< std::byte > data;
     data.reserve(p_delimiter_size);

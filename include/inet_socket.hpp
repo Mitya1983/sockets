@@ -9,14 +9,14 @@ namespace mt::sockets {
 
     class Ssl;
 
-    class InetSocket {
+    class TcpSocket {
       public:
-        explicit InetSocket(SocketType p_socket_type = SocketType::STREAM);
-        InetSocket(const InetSocket&) = delete;
-        InetSocket(InetSocket&&) = delete;
-        InetSocket& operator=(const InetSocket&) = delete;
-        InetSocket& operator=(InetSocket&&) = delete;
-        ~InetSocket();
+        explicit TcpSocket(SocketType p_socket_type = SocketType::STREAM);
+        TcpSocket(const TcpSocket&) = delete;
+        TcpSocket(TcpSocket&&) = delete;
+        TcpSocket& operator=(const TcpSocket&) = delete;
+        TcpSocket& operator=(TcpSocket&&) = delete;
+        ~TcpSocket();
 
         void setHost(uint32_t p_ip, std::string p_host_name = "");
         void setPort(uint16_t p_port);
@@ -35,7 +35,7 @@ namespace mt::sockets {
             requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > >
                  and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >);
         auto write(std::ranges::input_range auto&& range) -> uint64_t;
-        [[nodiscard]] auto accept() -> std::optional< std::unique_ptr< InetSocket > >;
+        [[nodiscard]] auto accept() -> std::optional< std::unique_ptr< TcpSocket > >;
         [[nodiscard]] auto read() -> std::byte;
         [[nodiscard]] auto read(uint16_t p_size) -> std::vector< std::byte >;
         template < class ValueType >
@@ -52,7 +52,7 @@ namespace mt::sockets {
         [[nodiscard]] auto connected() const noexcept -> bool;
 
       private:
-        explicit InetSocket(bool);
+        explicit TcpSocket(bool);
         void write_byte(std::byte p_byte);
         auto write_range(const std::byte *p_bytes, uint64_t p_size) -> uint64_t;
         auto read_until(std::byte p_delimiter) -> std::vector< std::byte >;
@@ -79,7 +79,7 @@ namespace mt::sockets {
 
     template < class ValueType >
         requires std::is_same_v< ValueType, std::byte > or concepts::write_compatible< ValueType >
-    void InetSocket::write(ValueType p_value) {
+    void TcpSocket::write(ValueType p_value) {
         if constexpr (constexpr auto value_size = sizeof(std::decay_t< ValueType >); value_size == 1) {
             if constexpr (std::is_same_v< ValueType, std::byte >) {
                 write_byte(p_value);
@@ -91,7 +91,7 @@ namespace mt::sockets {
         }
     }
 
-    auto InetSocket::write(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> uint64_t
+    auto TcpSocket::write(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> uint64_t
         requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > >
              and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >)
     {
@@ -112,13 +112,13 @@ namespace mt::sockets {
         }
     }
 
-    auto InetSocket::write(std::ranges::input_range auto&& range) -> uint64_t {
+    auto TcpSocket::write(std::ranges::input_range auto&& range) -> uint64_t {
         return write(range.begin(), range.end());
     }
 
     template < class ValueType >
         requires std::is_same_v< std::decay_t< ValueType >, std::byte > or concepts::delimiter_compatible< ValueType >
-    auto InetSocket::readUntil(ValueType p_value) -> std::vector< std::byte > {
+    auto TcpSocket::readUntil(ValueType p_value) -> std::vector< std::byte > {
         if constexpr (constexpr auto value_size = sizeof(std::decay_t< ValueType >); value_size == 1) {
             if constexpr (std::is_same_v< ValueType, std::byte >) {
                 return read_until(p_value);
@@ -130,7 +130,7 @@ namespace mt::sockets {
         }
     }
 
-    auto InetSocket::readUntil(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> std::vector< std::byte >
+    auto TcpSocket::readUntil(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> std::vector< std::byte >
         requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > >
               && (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >)
     {
@@ -152,7 +152,7 @@ namespace mt::sockets {
         }
     }
 
-    auto InetSocket::readUntil(std::ranges::input_range auto&& range) -> std::vector< std::byte > {
+    auto TcpSocket::readUntil(std::ranges::input_range auto&& range) -> std::vector< std::byte > {
         return readUntil(range.begin(), range.end());
     }
 }  // namespace mt::sockets
