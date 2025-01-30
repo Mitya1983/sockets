@@ -10,7 +10,7 @@
 #include <arpa/inet.h>
 
 mt::sockets::UdpSocket::UdpSocket() {
-    const auto protocol = getprotobyname("tcp");
+    const auto protocol = getprotobyname("udp");
     m_socket = socket(AF_INET, SOCK_DGRAM, protocol->p_proto);
     if (m_socket < 0) {
         Error error;
