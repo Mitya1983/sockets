@@ -51,15 +51,20 @@ mt::sockets::UdpSocket::~UdpSocket() {
     close();
 }
 
-void mt::sockets::UdpSocket::setHost(const uint32_t p_ip, std::string p_host_name) {
-    m_ip = p_ip;
-    if (not p_host_name.empty()) {
-        m_host_name = std::move(p_host_name);
-    }
+void mt::sockets::UdpSocket::setDestinationHost(const uint32_t p_ip) {
+    m_destination_ip = p_ip;
 }
 
-void mt::sockets::UdpSocket::setPort(const uint16_t p_port) {
-    m_port = p_port;
+void mt::sockets::UdpSocket::setLocalHost(uint32_t p_ip) {
+    m_local_ip = p_ip;
+}
+
+void mt::sockets::UdpSocket::setLocalPort(uint16_t p_port) {
+    m_local_port = p_port;
+}
+
+void mt::sockets::UdpSocket::setDestinationPort(const uint16_t p_port) {
+    m_destination_port = p_port;
 }
 
 void mt::sockets::UdpSocket::setNonBlocking(const bool p_non_blocking) {
@@ -115,8 +120,16 @@ void mt::sockets::UdpSocket::bind() {
     }
     sockaddr_in address{};
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = m_ip;
-    address.sin_port = m_port;
+    if (m_local_ip == 0) {
+        address.sin_addr.s_addr = INADDR_ANY;
+    } else {
+        address.sin_addr.s_addr = m_local_ip;
+    }
+    if (m_local_port == 0) {
+        address.sin_port = m_local_port = 23251; // TODO change to random one
+    } else {
+        address.sin_port = m_local_port;
+    }
     if (const auto status = ::bind(m_socket, reinterpret_cast< struct sockaddr * >(&address), sizeof(address)); status < 0) {
         Error error;
         switch (errno) {
@@ -188,13 +201,13 @@ auto mt::sockets::UdpSocket::read() -> std::vector< std::byte > {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return {};
     }
-    if (not m_bound) {
-        m_error = makeError(Error::LISTEN_NOT_BOUND);
-        return {};
-    }
     std::vector< std::byte > buffer{};
-    buffer.reserve(512);
+    buffer.resize(512);
+    //TODO:
     sockaddr_in sender{};
+    sender.sin_family = AF_INET;
+    sender.sin_addr.s_addr = m_local_port;
+    sender.sin_port = m_local_ip;
     auto sockaddre_size = sizeof(sender);
     if (const auto status
         = ::recvfrom(m_socket, buffer.data(), std::ssize(buffer), MSG_WAITALL, reinterpret_cast< sockaddr * >(&sender), reinterpret_cast< socklen_t * >(&sockaddre_size));
@@ -266,11 +279,11 @@ auto mt::sockets::UdpSocket::read() -> std::vector< std::byte > {
 }
 
 auto mt::sockets::UdpSocket::ip() const noexcept -> uint32_t {
-    return m_ip;
+    return m_destination_ip;
 }
 
 auto mt::sockets::UdpSocket::port() const noexcept -> uint16_t {
-    return m_port;
+    return m_destination_port;
 }
 
 auto mt::sockets::UdpSocket::error() const noexcept -> std::error_code {
@@ -284,8 +297,8 @@ auto mt::sockets::UdpSocket::nonBlocking() const noexcept -> bool {
 auto mt::sockets::UdpSocket::write(const std::byte *p_bytes, const uint64_t p_size) -> uint64_t {
     sockaddr_in remote_address{};
     remote_address.sin_family = AF_INET;
-    remote_address.sin_addr.s_addr = m_ip;
-    remote_address.sin_port = m_port;
+    remote_address.sin_addr.s_addr = m_destination_ip;
+    remote_address.sin_port = m_destination_port;
     int64_t status;
     if (status = ::sendto(m_socket, p_bytes, p_size, MSG_NOSIGNAL, reinterpret_cast< sockaddr * >(&remote_address), sizeof(remote_address)); status < 0) {
         Error error;

@@ -22,8 +22,10 @@ namespace mt::sockets {
         UdpSocket& operator=(UdpSocket&&) = delete;
         ~UdpSocket();
 
-        void setHost(uint32_t p_ip, std::string p_host_name = "");
-        void setPort(uint16_t p_port);
+        void setDestinationHost(uint32_t p_ip);
+        void setLocalHost(uint32_t p_ip);
+        void setDestinationPort(uint16_t p_port);
+        void setLocalPort(uint16_t p_port);
         void setNonBlocking(bool p_non_blocking = true);
         void setTimeOut(std::chrono::seconds p_seconds);
         void resetError();
@@ -43,29 +45,29 @@ namespace mt::sockets {
       private:
         auto write(const std::byte *p_bytes, uint64_t p_size) -> uint64_t;
 
-        std::string m_host_name;
-
         int32_t m_socket{-1};
-        uint32_t m_ip{0};
+        uint32_t m_destination_ip{0};
+        uint32_t m_local_ip{0};
 
         std::error_code m_error;
 
-        uint16_t m_port{0};
+        uint16_t m_destination_port{0};
+        uint16_t m_local_port{0};
 
         bool m_non_blocking{false};
         bool m_bound{false};
-        bool m_listening{false};
+        [[maybe_unused]] bool m_listening{false};
     };
     auto UdpSocket::write(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> uint64_t
         requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > >
              and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >)
     {
         if constexpr (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte >) {
-            return write_range(&*begin, end - begin);
+            return write(&*begin, end - begin);
         } else {
             std::vector< std::byte > data;
             if constexpr (constexpr auto value_size = sizeof(std::decay_t< decltype(*begin) >); value_size == 1) {
-                return write_range(reinterpret_cast<std::byte*>(&*begin), end - begin);
+                return write(reinterpret_cast<std::byte*>(&*begin), end - begin);
             } else {
                 uint64_t bytes_written{0};
                 while (begin != end) {

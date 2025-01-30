@@ -50,15 +50,23 @@ mt::sockets::TcpSocket::~TcpSocket() {
     close();
 }
 
-void mt::sockets::TcpSocket::setHost(const uint32_t p_ip, std::string p_host_name) {
-    m_ip = p_ip;
+void mt::sockets::TcpSocket::setDestinationHost(const uint32_t p_ip, std::string p_host_name) {
+    m_destination_ip = p_ip;
     if (not p_host_name.empty()) {
         m_host_name = std::move(p_host_name);
     }
 }
 
-void mt::sockets::TcpSocket::setPort(const uint16_t p_port) {
-    m_port = p_port;
+void mt::sockets::TcpSocket::setLocalHost(uint32_t p_ip) {
+    m_local_ip = p_ip;
+}
+
+void mt::sockets::TcpSocket::setDestinationPort(const uint16_t p_port) {
+    m_destination_port = p_port;
+}
+
+void mt::sockets::TcpSocket::setLocalPort(uint16_t p_port) {
+    m_local_port = p_port;
 }
 
 void mt::sockets::TcpSocket::setNonBlocking(const bool p_non_blocking) {
@@ -114,8 +122,16 @@ void mt::sockets::TcpSocket::bind() {
     }
     sockaddr_in address{};
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = m_ip;
-    address.sin_port = m_port;
+    if (m_local_ip == 0) {
+        address.sin_addr.s_addr = INADDR_ANY;
+    } else {
+        address.sin_addr.s_addr = m_local_ip;
+    }
+    if (m_local_port == 0) {
+        address.sin_port = 23251; // TODO change to random one
+    } else {
+        address.sin_port = m_local_port;
+    }
     if (const auto status = ::bind(m_socket, reinterpret_cast< struct sockaddr * >(&address), sizeof(address)); status < 0) {
         Error error;
         switch (errno) {
@@ -203,8 +219,8 @@ void mt::sockets::TcpSocket::connect(const bool p_ssl) {
     if (not m_ssl_connected) {
         sockaddr_in remote_address{};
         remote_address.sin_family = AF_INET;
-        remote_address.sin_addr.s_addr = m_ip;
-        remote_address.sin_port = m_port;
+        remote_address.sin_addr.s_addr = m_destination_ip;
+        remote_address.sin_port = m_destination_port;
         if (const int32_t status = ::connect(m_socket, reinterpret_cast< struct sockaddr * >(&remote_address), sizeof(remote_address)); status < 0) {
             auto error{Error::SUCCESS};
             switch (errno) {
@@ -319,7 +335,7 @@ void mt::sockets::TcpSocket::connect(const bool p_ssl) {
         if (not m_host_name.empty()) {
             certificate_verified = m_ssl->verifyHost(m_host_name);
         } else {
-            certificate_verified = m_ssl->verifyIp(m_ip);
+            certificate_verified = m_ssl->verifyIp(m_destination_ip);
         }
         const bool start_date_is_valid = m_ssl->verifyStartDate();
         const bool end_date_is_valid = m_ssl->verifyEndDate();
@@ -476,8 +492,8 @@ auto mt::sockets::TcpSocket::accept() -> std::optional< std::unique_ptr< mt::soc
     if (m_non_blocking) {
         socket->setNonBlocking();
     }
-    socket->setPort(peer_address.sin_port);
-    socket->setHost(peer_address.sin_addr.s_addr);
+    socket->setDestinationPort(peer_address.sin_port);
+    socket->setDestinationHost(peer_address.sin_addr.s_addr);
     socket->m_connected = true;
     return socket;
 }
@@ -660,11 +676,11 @@ auto mt::sockets::TcpSocket::read(const uint16_t p_size) -> std::vector< std::by
 }
 
 auto mt::sockets::TcpSocket::ip() const noexcept -> uint32_t {
-    return m_ip;
+    return m_destination_ip;
 }
 
 auto mt::sockets::TcpSocket::port() const noexcept -> uint16_t {
-    return m_port;
+    return m_destination_port;
 }
 
 auto mt::sockets::TcpSocket::error() const noexcept -> std::error_code {

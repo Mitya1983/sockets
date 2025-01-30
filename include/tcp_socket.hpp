@@ -18,8 +18,10 @@ namespace mt::sockets {
         TcpSocket& operator=(TcpSocket&&) = delete;
         ~TcpSocket();
 
-        void setHost(uint32_t p_ip, std::string p_host_name = "");
-        void setPort(uint16_t p_port);
+        void setDestinationHost(uint32_t p_ip, std::string p_host_name = "");
+        void setLocalHost(uint32_t p_ip);
+        void setDestinationPort(uint16_t p_port);
+        void setLocalPort(uint16_t p_port);
         void setNonBlocking(bool p_non_blocking = true);
         void setTimeOut(std::chrono::seconds p_seconds);
         void resetError();
@@ -61,11 +63,13 @@ namespace mt::sockets {
         std::string m_host_name;
 
         int32_t m_socket{-1};
-        uint32_t m_ip{0};
+        uint32_t m_destination_ip{0};
+        uint32_t m_local_ip{0};
 
         std::error_code m_error;
 
-        uint16_t m_port{0};
+        uint16_t m_destination_port{0};
+        uint16_t m_local_port{0};
 
         std::unique_ptr< Ssl > m_ssl;
 
