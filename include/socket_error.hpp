@@ -436,6 +436,10 @@ namespace mt::sockets {
          */
         READ_CONNECTION_RESET,
         /**
+         * \brief Insufficient resources were available in the system to perform the operation
+         */
+        READ_NO_BUFFER,
+        /**
          * \brief Read until finished reading by reaching the delimiter
          */
         READ_DONE,

@@ -1,4 +1,4 @@
-#include "include/inet_socket.hpp"
+#include "include/tcp_socket.hpp"
 #include "include/socket_error.hpp"
 #include "include/ssl.hpp"
 
@@ -7,23 +7,10 @@
 #include <sys/fcntl.h>
 #include <arpa/inet.h>
 
-mt::sockets::TcpSocket::TcpSocket(const SocketType p_socket_type) :
-    m_socket(-1),
-    m_ip(0),
-    m_port(0),
-    m_type(p_socket_type),
-    m_non_blocking(false),
-    m_bound(false),
-    m_listening(false),
-    m_not_ssl_connected(false),
-    m_connected(false) {
+mt::sockets::TcpSocket::TcpSocket() {
 
     const auto protocol = getprotobyname("tcp");
-    if (m_type == SocketType::STREAM) {
-        m_socket = socket(AF_INET, SOCK_STREAM, protocol->p_proto);
-    } else {
-        m_socket = socket(AF_INET, SOCK_DGRAM, protocol->p_proto);
-    }
+    m_socket = socket(AF_INET, SOCK_STREAM, protocol->p_proto);
     if (m_socket < 0) {
         Error error;
         switch (errno) {
@@ -213,7 +200,7 @@ void mt::sockets::TcpSocket::connect(const bool p_ssl) {
         m_error = makeError(Error::CONNECT_SOCKET_IS_IN_LISTEN_MODE);
         return;
     }
-    if (not m_not_ssl_connected) {
+    if (not m_ssl_connected) {
         sockaddr_in remote_address{};
         remote_address.sin_family = AF_INET;
         remote_address.sin_addr.s_addr = m_ip;
@@ -303,7 +290,7 @@ void mt::sockets::TcpSocket::connect(const bool p_ssl) {
             m_error = makeError(error);
             return;
         }
-        m_not_ssl_connected = true;
+        m_ssl_connected = true;
         if (not p_ssl) {
             m_connected = true;
         }
@@ -408,7 +395,6 @@ auto mt::sockets::TcpSocket::accept() -> std::optional< std::unique_ptr< mt::soc
     sockaddr_in peer_address{};
     uint32_t peer_address_length = sizeof(peer_address);
     std::unique_ptr< mt::sockets::TcpSocket > socket(new mt::sockets::TcpSocket(true));
-    socket->m_type = m_type;
     socket->m_socket = ::accept(m_socket, reinterpret_cast< struct sockaddr * >(&peer_address), &peer_address_length);
 
     if (socket->m_socket < 0) {
@@ -693,17 +679,7 @@ auto mt::sockets::TcpSocket::connected() const noexcept -> bool {
     return m_connected;
 }
 
-mt::sockets::TcpSocket::TcpSocket(bool) :
-    m_socket(-1),
-    m_ip(0),
-    m_port(0),
-    m_type(SocketType::STREAM),
-    m_non_blocking(false),
-    m_bound(false),
-    m_listening(false),
-    m_not_ssl_connected(false),
-    m_connected(false) {
-}
+mt::sockets::TcpSocket::TcpSocket(bool) {}
 
 void mt::sockets::TcpSocket::write_byte(const std::byte p_byte) {
     if (m_socket == -1) {
@@ -724,15 +700,7 @@ void mt::sockets::TcpSocket::write_byte(const std::byte p_byte) {
         }
         bytes_sent = ::send(m_socket, &p_byte, 1, MSG_NOSIGNAL);
     } else {
-        if (m_type == SocketType::STREAM) {
-            m_error = makeError(Error::SOCKET_NOT_CONNECTED);
-        } else {
-            sockaddr_in remote_address{};
-            remote_address.sin_family = AF_INET;
-            remote_address.sin_addr.s_addr = m_ip;
-            remote_address.sin_port = m_port;
-            bytes_sent = ::sendto(m_socket, &p_byte, 1, MSG_NOSIGNAL, reinterpret_cast< sockaddr * >(&remote_address), sizeof(remote_address));
-        }
+        m_error = makeError(Error::SOCKET_NOT_CONNECTED);
     }
     if (static_cast< int8_t >(bytes_sent) < 0) {
         Error error;
@@ -851,15 +819,7 @@ auto mt::sockets::TcpSocket::write_range(const std::byte* p_bytes, const uint64_
         }
         bytes_sent = ::send(m_socket, p_bytes, p_size, MSG_NOSIGNAL);
     } else {
-        if (m_type == SocketType::STREAM) {
-            m_error = makeError(Error::SOCKET_NOT_CONNECTED);
-        } else {
-            sockaddr_in remote_address{};
-            remote_address.sin_family = AF_INET;
-            remote_address.sin_addr.s_addr = m_ip;
-            remote_address.sin_port = m_port;
-            bytes_sent = ::sendto(m_socket, p_bytes, p_size, MSG_NOSIGNAL, reinterpret_cast< sockaddr * >(&remote_address), sizeof(remote_address));
-        }
+        m_error = makeError(Error::SOCKET_NOT_CONNECTED);
     }
     if (static_cast< int64_t >(bytes_sent) < 0) {
         Error error;

@@ -11,7 +11,7 @@ namespace mt::sockets {
 
     class TcpSocket {
       public:
-        explicit TcpSocket(SocketType p_socket_type = SocketType::STREAM);
+        explicit TcpSocket();
         TcpSocket(const TcpSocket&) = delete;
         TcpSocket(TcpSocket&&) = delete;
         TcpSocket& operator=(const TcpSocket&) = delete;
@@ -60,21 +60,20 @@ namespace mt::sockets {
 
         std::string m_host_name;
 
-        int32_t m_socket;
-        uint32_t m_ip;
+        int32_t m_socket{-1};
+        uint32_t m_ip{0};
 
         std::error_code m_error;
 
-        uint16_t m_port;
+        uint16_t m_port{0};
 
         std::unique_ptr< Ssl > m_ssl;
-        SocketType m_type;
 
-        bool m_non_blocking;
-        bool m_bound;
-        bool m_listening;
-        bool m_not_ssl_connected;
-        bool m_connected;
+        bool m_non_blocking{false};
+        bool m_bound{false};
+        bool m_listening{false};
+        bool m_ssl_connected{false};
+        bool m_connected{false};
     };
 
     template < class ValueType >
