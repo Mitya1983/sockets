@@ -209,9 +209,9 @@ auto mt::sockets::UdpSocket::read() -> std::vector< std::byte > {
     sender.sin_addr.s_addr = m_local_port;
     sender.sin_port = m_local_ip;
     auto sockaddre_size = sizeof(sender);
-    if (const auto status
+    const auto bytes_read
         = ::recvfrom(m_socket, buffer.data(), std::ssize(buffer), MSG_WAITALL, reinterpret_cast< sockaddr * >(&sender), reinterpret_cast< socklen_t * >(&sockaddre_size));
-        status < 0) {
+    if (bytes_read < 0) {
         Error error;
         switch (errno) {
             case EAGAIN: {
@@ -274,7 +274,7 @@ auto mt::sockets::UdpSocket::read() -> std::vector< std::byte > {
         }
         m_error = makeError(error);
     }
-    buffer.shrink_to_fit();
+    buffer.resize(bytes_read);
     return buffer;
 }
 
