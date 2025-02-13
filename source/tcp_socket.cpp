@@ -1,4 +1,6 @@
 #include "include/tcp_socket.hpp"
+
+#include "include/network_utility.hpp"
 #include "include/socket_error.hpp"
 #include "include/ssl.hpp"
 
@@ -57,7 +59,7 @@ void mt::sockets::TcpSocket::setDestinationHost(const uint32_t p_ip, std::string
     }
 }
 
-void mt::sockets::TcpSocket::setLocalHost(uint32_t p_ip) {
+void mt::sockets::TcpSocket::setLocalHost(const uint32_t p_ip) {
     m_local_ip = p_ip;
 }
 
@@ -128,7 +130,7 @@ void mt::sockets::TcpSocket::bind() {
         address.sin_addr.s_addr = m_local_ip;
     }
     if (m_local_port == 0) {
-        address.sin_port = 23251; // TODO change to random one
+        address.sin_port = network::utility::toNetworkByteOrder(static_cast<uint16_t>(network::utility::generateRandomInteger(49152, std::numeric_limits<uint16_t>::max())));
     } else {
         address.sin_port = m_local_port;
     }
@@ -155,6 +157,7 @@ void mt::sockets::TcpSocket::bind() {
                 error = Error::BIND_FILE_DESCRIPTOR_IS_NOT_SOCKET;
                 break;
             }
+            //TODO: Handle at least 99 error here
             default: {
                 throw std::runtime_error("Unknown error occurred");
             }
