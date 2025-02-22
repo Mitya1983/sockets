@@ -1,6 +1,5 @@
 #include "include/tcp_socket.hpp"
 
-#include "include/network_utility.hpp"
 #include "include/socket_error.hpp"
 #include "include/ssl.hpp"
 
@@ -124,16 +123,8 @@ void mt::sockets::TcpSocket::bind() {
     }
     sockaddr_in address{};
     address.sin_family = AF_INET;
-    if (m_local_ip == 0) {
-        address.sin_addr.s_addr = INADDR_ANY;
-    } else {
-        address.sin_addr.s_addr = m_local_ip;
-    }
-    if (m_local_port == 0) {
-        address.sin_port = network::utility::toNetworkByteOrder(static_cast<uint16_t>(network::utility::generateRandomInteger(49152, std::numeric_limits<uint16_t>::max())));
-    } else {
-        address.sin_port = m_local_port;
-    }
+    address.sin_addr.s_addr = m_local_ip;
+    address.sin_port = m_local_port;
     if (const auto status = ::bind(m_socket, reinterpret_cast< struct sockaddr * >(&address), sizeof(address)); status < 0) {
         Error error;
         switch (errno) {
