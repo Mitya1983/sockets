@@ -55,11 +55,11 @@ void mt::sockets::UdpSocket::setDestinationHost(const uint32_t p_ip) {
     m_destination_ip = p_ip;
 }
 
-void mt::sockets::UdpSocket::setLocalHost(uint32_t p_ip) {
+void mt::sockets::UdpSocket::setLocalHost(const uint32_t p_ip) {
     m_local_ip = p_ip;
 }
 
-void mt::sockets::UdpSocket::setLocalPort(uint16_t p_port) {
+void mt::sockets::UdpSocket::setLocalPort(const uint16_t p_port) {
     m_local_port = p_port;
 }
 
@@ -120,16 +120,9 @@ void mt::sockets::UdpSocket::bind() {
     }
     sockaddr_in address{};
     address.sin_family = AF_INET;
-    if (m_local_ip == 0) {
-        address.sin_addr.s_addr = INADDR_ANY;
-    } else {
-        address.sin_addr.s_addr = m_local_ip;
-    }
-    if (m_local_port == 0) {
-        address.sin_port = m_local_port = 23251; // TODO change to random one
-    } else {
-        address.sin_port = m_local_port;
-    }
+    address.sin_addr.s_addr = m_local_ip;
+    address.sin_port = m_local_port;
+
     if (const auto status = ::bind(m_socket, reinterpret_cast< struct sockaddr * >(&address), sizeof(address)); status < 0) {
         Error error;
         switch (errno) {
@@ -203,7 +196,6 @@ auto mt::sockets::UdpSocket::read() -> std::vector< std::byte > {
     }
     std::vector< std::byte > buffer{};
     buffer.resize(512);
-    //TODO:
     sockaddr_in sender{};
     sender.sin_family = AF_INET;
     sender.sin_addr.s_addr = m_local_port;
@@ -274,7 +266,9 @@ auto mt::sockets::UdpSocket::read() -> std::vector< std::byte > {
         }
         m_error = makeError(error);
     }
-    buffer.resize(bytes_read);
+    if (bytes_read > 0) {
+        buffer.resize(bytes_read);
+    }
     return buffer;
 }
 

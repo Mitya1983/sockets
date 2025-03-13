@@ -472,13 +472,6 @@ namespace mt::sockets {
      */
     [[nodiscard]] auto makeError(Error error_code) -> std::error_code;
 
-}  // namespace tristan::sockets
-
-namespace std {
-    /**
-     * \brief //This is needed to specialise the standard type trait.
-     */
-    template <> struct is_error_code_enum< mt::sockets::Error > : true_type { };
-}  // namespace std
+}  // namespace mt::sockets
 
 #endif  //SOCKET_ERROR_HPP

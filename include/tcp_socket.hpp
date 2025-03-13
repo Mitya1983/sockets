@@ -4,6 +4,7 @@
 #include "socket_common.hpp"
 
 #include <chrono>
+#include <filesystem>
 
 namespace mt::sockets {
 
@@ -11,7 +12,9 @@ namespace mt::sockets {
 
     class TcpSocket {
       public:
-        explicit TcpSocket();
+        explicit TcpSocket(bool p_ssl);
+        explicit TcpSocket(std::filesystem::path p_certificate_path);
+        explicit TcpSocket(std::filesystem::path p_certificate_path, std::filesystem::path p_key_path);
         TcpSocket(const TcpSocket&) = delete;
         TcpSocket(TcpSocket&&) = delete;
         TcpSocket& operator=(const TcpSocket&) = delete;
@@ -27,15 +30,14 @@ namespace mt::sockets {
         void resetError();
         void bind();
         void listen(uint32_t p_connection_count_limit);
-        void connect(bool p_ssl = true);
+        void connect();
         void close();
         void shutdown();
         template < class ValueType >
             requires std::is_same_v< ValueType, std::byte > or concepts::write_compatible< ValueType >
         void write(ValueType p_value);
         auto write(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> uint64_t
-            requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > >
-                 and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >);
+            requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > > and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >);
         auto write(std::ranges::input_range auto&& range) -> uint64_t;
         [[nodiscard]] auto accept() -> std::optional< std::unique_ptr< TcpSocket > >;
         [[nodiscard]] auto read() -> std::byte;
@@ -44,8 +46,7 @@ namespace mt::sockets {
             requires std::is_same_v< std::decay_t< ValueType >, std::byte > or concepts::delimiter_compatible< ValueType >
         [[nodiscard]] auto readUntil(ValueType p_value) -> std::vector< std::byte >;
         [[nodiscard]] auto readUntil(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> std::vector< std::byte >
-            requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > >
-                 and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >);
+            requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > > and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >);
         [[nodiscard]] auto readUntil(std::ranges::input_range auto&& range) -> std::vector< std::byte >;
         [[nodiscard]] auto ip() const noexcept -> uint32_t;
         [[nodiscard]] auto port() const noexcept -> uint16_t;
@@ -54,11 +55,11 @@ namespace mt::sockets {
         [[nodiscard]] auto connected() const noexcept -> bool;
 
       private:
-        explicit TcpSocket(bool);
+        explicit TcpSocket();
         void write_byte(std::byte p_byte);
         auto write_range(const std::byte *p_bytes, uint64_t p_size) -> uint64_t;
         auto read_until(std::byte p_delimiter) -> std::vector< std::byte >;
-        auto read_until(const std::byte* p_delimiter, int64_t p_delimiter_size) -> std::vector< std::byte >;
+        auto read_until(const std::byte *p_delimiter, int64_t p_delimiter_size) -> std::vector< std::byte >;
 
         std::string m_host_name;
 
@@ -95,19 +96,18 @@ namespace mt::sockets {
     }
 
     auto TcpSocket::write(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> uint64_t
-        requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > >
-             and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >)
+        requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > > and (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >)
     {
         if constexpr (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte >) {
             return write_range(&*begin, end - begin);
         } else {
             std::vector< std::byte > data;
             if constexpr (constexpr auto value_size = sizeof(std::decay_t< decltype(*begin) >); value_size == 1) {
-                return write_range(reinterpret_cast<std::byte*>(&*begin), end - begin);
+                return write_range(reinterpret_cast< std::byte * >(&*begin), end - begin);
             } else {
                 uint64_t bytes_written{0};
                 while (begin != end) {
-                    bytes_written += write_range(reinterpret_cast< std::byte* >(&*begin), value_size);
+                    bytes_written += write_range(reinterpret_cast< std::byte * >(&*begin), value_size);
                     ++begin;
                 }
                 return bytes_written;
@@ -134,20 +134,19 @@ namespace mt::sockets {
     }
 
     auto TcpSocket::readUntil(std::indirectly_readable auto begin, std::indirectly_readable auto end) -> std::vector< std::byte >
-        requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > >
-              && (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >)
+        requires std::is_same_v< std::decay_t< decltype(*begin) >, std::decay_t< decltype(*end) > > && (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte > or concepts::write_compatible< std::decay_t< decltype(*begin) > >)
     {
         if constexpr (std::is_same_v< std::decay_t< decltype(*begin) >, std::byte >) {
             return read_until(&*begin, end - begin);
         } else {
             if constexpr (constexpr auto value_size = sizeof(std::decay_t< decltype(*begin) >); value_size == 1) {
-                return read_until(reinterpret_cast<std::byte*>(&*begin), end - begin);
+                return read_until(reinterpret_cast< std::byte * >(&*begin), end - begin);
             } else {
                 auto size = (end - begin) * value_size;
-                std::vector<std::byte> delimiter;
+                std::vector< std::byte > delimiter;
                 delimiter.reserve(size);
                 while (begin != end) {
-                    std::copy_n(reinterpret_cast< std::byte* >(&*begin), value_size, std::back_inserter(delimiter));
+                    std::copy_n(reinterpret_cast< std::byte * >(&*begin), value_size, std::back_inserter(delimiter));
                     ++begin;
                 }
                 return read_until(delimiter.data(), std::ssize(delimiter));

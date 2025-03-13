@@ -8,7 +8,7 @@
 #include <sys/fcntl.h>
 #include <arpa/inet.h>
 
-mt::sockets::TcpSocket::TcpSocket() {
+mt::sockets::TcpSocket::TcpSocket(const bool p_ssl) {
 
     const auto protocol = getprotobyname("tcp");
     m_socket = socket(AF_INET, SOCK_STREAM, protocol->p_proto);
@@ -45,6 +45,31 @@ mt::sockets::TcpSocket::TcpSocket() {
         }
         m_error = makeError(error);
     }
+    if (p_ssl) {
+        try {
+            m_ssl = std::make_unique< Ssl >(m_socket);
+        } catch (const std::system_error& error) {
+            m_error = error.code();
+            return;
+        }
+    }
+}
+
+mt::sockets::TcpSocket::TcpSocket(std::filesystem::path p_certificate_path) :
+    TcpSocket(true) {
+    if (not p_certificate_path.empty()) {
+        m_ssl->setCertificate(std::move(p_certificate_path));
+    }
+}
+
+mt::sockets::TcpSocket::TcpSocket(std::filesystem::path p_certificate_path, std::filesystem::path p_key_path) :
+    TcpSocket(true) {
+    if (not p_certificate_path.empty()) {
+        m_ssl->setCertificate(std::move(p_certificate_path));
+    }
+    if (not p_key_path.empty()) {
+        m_ssl->setKey(std::move(p_key_path));
+    }
 }
 
 mt::sockets::TcpSocket::~TcpSocket() {
@@ -55,6 +80,9 @@ void mt::sockets::TcpSocket::setDestinationHost(const uint32_t p_ip, std::string
     m_destination_ip = p_ip;
     if (not p_host_name.empty()) {
         m_host_name = std::move(p_host_name);
+        if (m_ssl) {
+            m_ssl->setHost(m_host_name);
+        }
     }
 }
 
@@ -66,7 +94,7 @@ void mt::sockets::TcpSocket::setDestinationPort(const uint16_t p_port) {
     m_destination_port = p_port;
 }
 
-void mt::sockets::TcpSocket::setLocalPort(uint16_t p_port) {
+void mt::sockets::TcpSocket::setLocalPort(const uint16_t p_port) {
     m_local_port = p_port;
 }
 
@@ -201,7 +229,7 @@ void mt::sockets::TcpSocket::listen(const uint32_t p_connection_count_limit) {
     m_listening = true;
 }
 
-void mt::sockets::TcpSocket::connect(const bool p_ssl) {
+void mt::sockets::TcpSocket::connect() {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return;
@@ -301,20 +329,11 @@ void mt::sockets::TcpSocket::connect(const bool p_ssl) {
             return;
         }
         m_ssl_connected = true;
-        if (not p_ssl) {
+        if (not m_ssl) {
             m_connected = true;
         }
     }
-    if (p_ssl) {
-        try {
-            if (not m_ssl) {
-                m_ssl = std::make_unique< Ssl >(m_socket);
-            }
-        } catch (const std::system_error& error) {
-            m_error = error.code();
-            return;
-        }
-
+    if (m_ssl) {
         m_error = m_ssl->connect();
 
         if (m_error.value() == static_cast< int >(Error::SSL_TRY_AGAIN)) {
@@ -404,7 +423,7 @@ auto mt::sockets::TcpSocket::accept() -> std::optional< std::unique_ptr< mt::soc
 
     sockaddr_in peer_address{};
     uint32_t peer_address_length = sizeof(peer_address);
-    std::unique_ptr< mt::sockets::TcpSocket > socket(new mt::sockets::TcpSocket(true));
+    std::unique_ptr< mt::sockets::TcpSocket > socket(new mt::sockets::TcpSocket());
     socket->m_socket = ::accept(m_socket, reinterpret_cast< struct sockaddr * >(&peer_address), &peer_address_length);
 
     if (socket->m_socket < 0) {
@@ -689,7 +708,7 @@ auto mt::sockets::TcpSocket::connected() const noexcept -> bool {
     return m_connected;
 }
 
-mt::sockets::TcpSocket::TcpSocket(bool) {}
+mt::sockets::TcpSocket::TcpSocket() = default;
 
 void mt::sockets::TcpSocket::write_byte(const std::byte p_byte) {
     if (m_socket == -1) {
@@ -805,7 +824,7 @@ void mt::sockets::TcpSocket::write_byte(const std::byte p_byte) {
     }
 }
 
-auto mt::sockets::TcpSocket::write_range(const std::byte* p_bytes, const uint64_t p_size) -> uint64_t {
+auto mt::sockets::TcpSocket::write_range(const std::byte *p_bytes, const uint64_t p_size) -> uint64_t {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return 0;
@@ -945,8 +964,7 @@ auto mt::sockets::TcpSocket::read_until(const std::byte p_delimiter) -> std::vec
     return data;
 }
 
-auto mt::sockets::TcpSocket::read_until(const std::byte* p_delimiter, int64_t p_delimiter_size)
-    -> std::vector< std::byte > {
+auto mt::sockets::TcpSocket::read_until(const std::byte *p_delimiter, const int64_t p_delimiter_size) -> std::vector< std::byte > {
     std::vector< std::byte > data;
     data.reserve(p_delimiter_size);
     while (true) {

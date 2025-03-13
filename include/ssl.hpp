@@ -1,6 +1,7 @@
 #ifndef OPEN_SSL_HPP
 #define OPEN_SSL_HPP
 
+#include <filesystem>
 #include <string>
 #include <vector>
 #include <memory>
@@ -14,7 +15,8 @@ namespace mt::sockets {
 
     class Ssl {
         friend class TcpSocket;
-
+        friend auto certificateCallBack(ssl_st* p_ssl, void* arg) -> int32_t;
+        friend auto clientHelloCallback(ssl_st *p_ssl, int32_t *al, void *arg) -> int32_t;
     public:
         explicit Ssl(int32_t socket);
         Ssl(const Ssl& other) = delete;
@@ -24,6 +26,10 @@ namespace mt::sockets {
         ~Ssl();
 
     private:
+
+        void setCertificate(std::filesystem::path p_certificate);
+        void setKey(std::filesystem::path p_key);
+        void setHost(const std::string& p_host);
 
         [[nodiscard]] auto connect() -> std::error_code;
         [[nodiscard]] auto verifyHost(const std::string& host) const -> bool;
@@ -40,11 +46,18 @@ namespace mt::sockets {
 
         void shutdown() const;
 
+        void setError();
+
+        std::filesystem::path m_certificate_path;
+        std::filesystem::path m_key_path;
+
+        std::string m_ssl_error_description;
+
         ssl_ctx_st* m_context;
         ssl_st* m_ssl;
         x509_st* m_server_certificate;
 
-        const ssl_method_st* method;
+        const ssl_method_st* m_method;
     };
 
 }  // namespace tristan::sockets

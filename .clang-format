@@ -58,7 +58,7 @@ BreakConstructorInitializers: AfterColon
 BreakInheritanceList: AfterComma
 BreakStringLiterals: true
 #BreakTemplateDeclarations: Yes
-ColumnLimit: 180
+ColumnLimit: 240
 CompactNamespaces: false
 ContinuationIndentWidth: 4
 EmptyLineAfterAccessModifier: Never
