@@ -65,7 +65,7 @@ namespace mt::sockets {
 
         std::error_code m_error;
 
-        int32_t m_socket;
+        int32_t m_socket{-1};
 
         SocketType m_type;
 

@@ -8,7 +8,6 @@
 #include <poll.h>
 
 mt::sockets::IpcSocket::IpcSocket(const SocketType p_socket_type) :
-    m_socket(-1),
     m_type(p_socket_type),
     m_global_namespace(false),
     m_peer_global_namespace(false),
