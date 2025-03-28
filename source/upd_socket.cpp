@@ -85,7 +85,7 @@ void mt::sockets::UdpSocket::setNonBlocking(const bool p_non_blocking) {
     m_non_blocking = p_non_blocking;
 }
 
-void mt::sockets::UdpSocket::setTimeOut(std::chrono::seconds p_seconds) {
+void mt::sockets::UdpSocket::setTimeOut(const std::chrono::seconds p_seconds) {
     if (m_socket == -1) {
         m_error = makeError(Error::SOCKET_NOT_INITIALISED);
         return;

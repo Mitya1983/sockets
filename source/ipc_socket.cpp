@@ -5,8 +5,7 @@
 #include <sys/fcntl.h>
 #include <sys/un.h>
 #include <unistd.h>
-
-#include <algorithm>
+#include <poll.h>
 
 mt::sockets::IpcSocket::IpcSocket(const SocketType p_socket_type) :
     m_socket(-1),

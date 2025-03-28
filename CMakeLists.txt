@@ -45,53 +45,21 @@ if (${PROJECT_IS_TOP_LEVEL})
     endif ()
 endif ()
 
-set(OPENSSL_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl)
-set(OPENSSL_LIB_DIR ${OPENSSL_DIR}/lib)
-if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/openssl)
-    set(OPENSSL_EXTRACT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openssl/tmp)
-    file(MAKE_DIRECTORY ${OPENSSL_EXTRACT_DIR})
-    set(OPENSSL_INSTALL_DIR ${OPENSSL_EXTRACT_DIR}/install)
-    file(MAKE_DIRECTORY ${OPENSSL_INSTALL_DIR})
-    file(ARCHIVE_EXTRACT INPUT ${CMAKE_CURRENT_SOURCE_DIR}/openssl/openssl-3.4.0.zip DESTINATION ${OPENSSL_EXTRACT_DIR} VERBOSE)
-    execute_process(
-            COMMAND ./Configure --prefix=${OPENSSL_INSTALL_DIR} --openssldir=${OPENSSL_INSTALL_DIR} CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
-            WORKING_DIRECTORY ${OPENSSL_EXTRACT_DIR}
-            )
-    execute_process(
-            COMMAND make
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/openssl/tmp
-            )
-    execute_process(
-            COMMAND make install
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/openssl/tmp
-            )
-    file(MAKE_DIRECTORY ${OPENSSL_DIR})
-    file(COPY ${OPENSSL_INSTALL_DIR}/include DESTINATION ${OPENSSL_DIR})
-    file(MAKE_DIRECTORY ${OPENSSL_LIB_DIR})
-    if (BUILD_STATIC)
-        file(GLOB_RECURSE OPENSSL_LIBS libssl.a libcrypto.a ${OPENSSL_INSTALL_DIR})
+if (${PROJECT_IS_TOP_LEVEL})
+    if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/openssl)
+        execute_process(
+                COMMAND git clone git@github.com:Mitya1983/openssl.git
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     else ()
-        file(GLOB_RECURSE OPENSSL_LIBS libssl.so* libcrypto.so* ${OPENSSL_INSTALL_DIR})
+        execute_process(
+                COMMAND git pull
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/openssl)
     endif ()
-    message(STATUS ${OPENSSL_LIBS})
-    file(COPY ${OPENSSL_LIBS} DESTINATION ${OPENSSL_LIB_DIR})
-    file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/openssl/tmp)
+    add_subdirectory(openssl)
 endif ()
-list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
-list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/openssl/include)
-if (BUILD_STATIC)
-    list(APPEND L_SOCKETS_DEPENDENCY_LIBS ${OPENSSL_LIB_DIR}/libssl.a ${OPENSSL_LIB_DIR}/libcrypto.a)
-else ()
-    list(APPEND L_SOCKETS_DEPENDENCY_LIBS ${OPENSSL_LIB_DIR}/libssl.so ${OPENSSL_LIB_DIR}/libcrypto.so)
-endif ()
-if (NOT ${PROJECT_IS_TOP_LEVEL})
-    set(SOCKETS_DEPENDENCY_LIBS ${L_SOCKETS_DEPENDENCY_LIBS} PARENT_SCOPE)
-else ()
-    set(SOCKETS_DEPENDENCY_LIBS ${L_SOCKETS_DEPENDENCY_LIBS})
-endif ()
-
 include_directories(
-        ${INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${OPENSSL_INCLUDE_DIR}
         )
 
 file(GLOB INC_FILES CONFIGURE_DEPENDS
@@ -122,7 +90,7 @@ if (NOT ${PROJECT_IS_TOP_LEVEL})
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         add_compile_definitions(MT_DEBUG)
     endif ()
-    set(SOCKETS_LIBRARY_DIR ${LIBRARY_INSTALL_DIR} PARENT_SCOPE)
+    set(SOCKETS_LIB_DIR ${LIBRARY_INSTALL_DIR} PARENT_SCOPE)
     set(SOCKETS_INCLUDE_DIR ${INCLUDE_INSTALL_DIR} PARENT_SCOPE)
 endif ()
 
@@ -134,7 +102,7 @@ else ()
     add_library(${PROJECT_NAME} SHARED)
 endif ()
 
-target_link_libraries(${PROJECT_NAME} ${L_SOCKETS_DEPENDENCY_LIBS})
+target_link_libraries(${PROJECT_NAME} ${OPENSSL_LIBS})
 
 if (${ENABLE_ASAN} AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     string(REPLACE "." ";" CLANG_VERSION ${CMAKE_CXX_COMPILER_VERSION})
@@ -166,4 +134,3 @@ set_target_properties(
         VERSION ${LIB_VERSION}
         OUTPUT_NAME ${PROJECT_NAME}
         )
-
