@@ -1,5 +1,5 @@
-#ifndef SOCKET_ERROR_HPP
-#define SOCKET_ERROR_HPP
+#ifndef SOCKETS_INCLUDE_SOCKET_ERROR_HPP
+#define SOCKETS_INCLUDE_SOCKET_ERROR_HPP
 
 #include <cstdint>
 #include <system_error>
@@ -474,4 +474,4 @@ namespace mt::sockets {
 
 }  // namespace mt::sockets
 
-#endif  //SOCKET_ERROR_HPP
+#endif  //SOCKETS_INCLUDE_SOCKET_ERROR_HPP

@@ -1,6 +1,6 @@
 // Created by Mitia Tristan on 29.01.25.
-#ifndef INCLUDE_UDP_SOCKET_HPP
-#define INCLUDE_UDP_SOCKET_HPP
+#ifndef SOCKETS_INCLUDE_UDP_SOCKET_HPP
+#define SOCKETS_INCLUDE_UDP_SOCKET_HPP
 
 #include "socket_common.hpp"
 
@@ -8,7 +8,6 @@
 #include <system_error>
 #include <optional>
 #include <vector>
-#include <algorithm>
 #include <chrono>
 
 namespace mt::sockets {
@@ -84,4 +83,4 @@ namespace mt::sockets {
     }
 }  // namespace mt::sockets
 
-#endif //INCLUDE_UDP_SOCKET_HPP
+#endif //SOCKETS_INCLUDE_UDP_SOCKET_HPP

@@ -1,5 +1,5 @@
-#ifndef IPC_SOCKET_HPP
-#define IPC_SOCKET_HPP
+#ifndef SOCKETS_INCLUDE_IPC_SOCKET_HPP
+#define SOCKETS_INCLUDE_IPC_SOCKET_HPP
 
 #include "socket_common.hpp"
 
@@ -156,4 +156,4 @@ namespace mt::sockets {
         return readUntil(range.begin(), range.end());
     }
 }  // namespace mt::sockets
-#endif  //IPC_SOCKET_HPP
+#endif  //SOCKETS_INCLUDE_IPC_SOCKET_HPP

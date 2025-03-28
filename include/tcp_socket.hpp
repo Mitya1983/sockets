@@ -1,5 +1,5 @@
-#ifndef INET_SOCKET_HPP
-#define INET_SOCKET_HPP
+#ifndef SOCKETS_INCLUDE_INET_SOCKET_HPP
+#define SOCKETS_INCLUDE_INET_SOCKET_HPP
 
 #include "socket_common.hpp"
 
@@ -159,4 +159,4 @@ namespace mt::sockets {
     }
 }  // namespace mt::sockets
 
-#endif  //INET_SOCKET_HPP
+#endif  //SOCKETS_INCLUDE_INET_SOCKET_HPP

@@ -1,5 +1,5 @@
-#ifndef SOCKETS_SOCKET_COMMON_HPP
-#define SOCKETS_SOCKET_COMMON_HPP
+#ifndef SOCKETS_INCLUDE_SOCKET_COMMON_HPP
+#define SOCKETS_INCLUDE_SOCKET_COMMON_HPP
 
 #include <cstdint>
 #include <concepts>
@@ -19,4 +19,4 @@ namespace mt::sockets {
 
 } //End of tristan::sockets namespace
 
-#endif  //SOCKETS_SOCKET_COMMON_HPP
+#endif  //SOCKETS_INCLUDE_SOCKET_COMMON_HPP

@@ -1,5 +1,5 @@
-#ifndef OPEN_SSL_HPP
-#define OPEN_SSL_HPP
+#ifndef SOCKETS_INCLUDE_SSL_HPP
+#define SOCKETS_INCLUDE_SSL_HPP
 
 #include <filesystem>
 #include <string>
@@ -62,4 +62,4 @@ namespace mt::sockets {
 
 }  // namespace tristan::sockets
 
-#endif  //OPEN_SSL_HPP
+#endif  //SOCKETS_INCLUDE_SSL_HPP
