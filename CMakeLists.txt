@@ -46,16 +46,16 @@ if (${PROJECT_IS_TOP_LEVEL})
 endif ()
 
 if (${PROJECT_IS_TOP_LEVEL})
-    if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/openssl)
-        execute_process(
-                COMMAND git clone git@github.com:Mitya1983/openssl.git
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    else ()
-        execute_process(
-                COMMAND git pull
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/openssl)
-    endif ()
-    add_subdirectory(openssl)
+#    if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/openssl)
+#        execute_process(
+#                COMMAND git clone git@github.com:Mitya1983/openssl.git
+#                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+#    else ()
+#        execute_process(
+#                COMMAND git pull
+#                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/openssl)
+#    endif ()
+#    add_subdirectory(openssl)
 endif ()
 include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}
