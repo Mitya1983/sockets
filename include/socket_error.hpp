@@ -474,4 +474,6 @@ namespace mt::sockets {
 
 }  // namespace mt::sockets
 
+auto operator==(mt::sockets::Error p_left, int32_t p_right) -> bool;
+auto operator==(int32_t p_left, mt::sockets::Error p_right) -> bool;
 #endif  //SOCKETS_INCLUDE_SOCKET_ERROR_HPP

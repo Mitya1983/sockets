@@ -143,3 +143,11 @@ auto SocketErrorCategory::name() const noexcept -> const char * {
 auto SocketErrorCategory::message(int ec) const -> std::string {
     return {g_socket_code_descriptions.at(static_cast< mt::sockets::Error >(ec))};
 }
+
+auto operator==(mt::sockets::Error p_left, int32_t p_right) -> bool {
+    return static_cast<int32_t>(p_left) == p_right;
+}
+
+auto operator==(int32_t p_left, mt::sockets::Error p_right) -> bool {
+    return p_left == static_cast<int32_t>(p_right);
+}
